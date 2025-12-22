@@ -1,34 +1,29 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const name = "홍길동";
+  const foods = ["치킨", "피자", "햄버거"];
+  const [age, setCount] = useState(19);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div>
+      <p>이름: {name}</p>
+      <p>나이: {age}</p>
+      {(age >= 20) ? <p>성인입니다</p> : <p>학생입니다</p>}
+
+      <ul>
+        {foods.map((food, index) => (
+          <li key={index}>{food}</li>
+        ))}
+      </ul>
+
+      <button onClick={() => { setCount(age + 1); }}>
+        나이 증가 버튼
+      </button>
+
+      <h1>{age}</h1>
+
+    </div>
   )
 }
 
