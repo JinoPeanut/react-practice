@@ -1,31 +1,43 @@
 import { useState } from "react";
 import FoodItem from "./FoodItem";
+import TodoItem from "./TodoItem";
 
 function App() {
-  const [foods, setFoods] = useState([
-    { id: 1, name: "치킨" },
-    { id: 2, name: "라면" },
-    { id: 3, name: "라면" },
-    { id: 4, name: "햄버거" },
+  const [todos, setTodos] = useState([
+    { id: 1, text: "공부하기", done: false },
+    { id: 2, text: "운동하기", done: false },
+    { id: 3, text: "밥먹기", done: false },
   ]);
 
+  const undoneTodos = todos.filter(todo => !todo.done);
+  const doneTodos = todos.filter(todo => todo.done);
 
-  const onDelete = (id) => {
-    //받아온 id 와 동일하지 않는것들만 setFoods 에 남겨둔다(즉 같으면 삭제)
-    setFoods(prev => prev.filter(food => food.id !== id));
+  const checkTodo = (id) => {
+    setTodos(prev =>
+      prev.map(todo =>
+        todo.id === id
+          ? { ...todo, done: !todo.done }
+          : todo
+      )
+    );
   }
+
+  const todoTotal = todos.length;
+  const todoSuccess = todos.filter(todo => todo.done).length;
 
   return (
     <div>
       <ul>
-        {foods.map(food => (
-          <FoodItem
-            key={food.id}
-            food={food}
-            onDelete={onDelete}
-          ></FoodItem>
+        {[...undoneTodos, ...doneTodos].map(todo => (
+          <TodoItem
+            key={todo.id}
+            todo={todo}
+            checkTodo={checkTodo}
+          />
         ))}
       </ul>
+
+      <h1>완료: {todoSuccess}, 전체: {todoTotal}</h1>
     </div>
   )
 }
