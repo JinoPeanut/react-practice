@@ -42,11 +42,50 @@ function App() {
     ))
   }
 
+  const [text, setText] = useState("");
+
+  const addTodo = () => {
+    if (text.trim() === "") return;
+
+    const newTodo = {
+      id: Date.now(),
+      text: text,
+      done: false,
+    }
+
+    setTodos(prev => [...prev, newTodo]);
+    setText("");
+  }
+
+  const updateTodo = (id, newText) => {
+    setTodos(prev => prev.map(
+      todo => todo.id === id
+        ? { ...todo, text: newText }
+        : todo
+    )
+    )
+  }
+
   return (
     <div>
-      <button onClick={() => setFilters("all")}>[전체]</button>
-      <button onClick={() => setFilters("done")}>[완료]</button>
-      <button onClick={() => setFilters("undone")}>[미완료]</button>
+      <div>
+        <button onClick={() => setFilters("all")}>[전체]</button>
+        <button onClick={() => setFilters("done")}>[완료]</button>
+        <button onClick={() => setFilters("undone")}>[미완료]</button>
+      </div>
+
+      <input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            addTodo();
+          }
+        }}
+        placeholder="일정을 입력하세요"
+      />
+      <button onClick={addTodo}>[입력]</button>
+
       <ul>
         {visibleTodos.map(todo => (
           <TodoItem
@@ -54,6 +93,7 @@ function App() {
             todo={todo}
             checkTodo={checkTodo}
             onDelete={onDelete}
+            updateTodo={updateTodo}
           ></TodoItem>
         ))}
       </ul>
