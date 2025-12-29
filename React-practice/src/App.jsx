@@ -58,11 +58,10 @@ function App() {
   }
 
   const updateTodo = (id, newText) => {
-    setTodos(prev => prev.map(
-      todo => todo.id === id
-        ? { ...todo, text: newText }
-        : todo
-    )
+    setTodos(prev =>
+      prev.map(todo =>
+        todo.id === id ? { ...todo, text: newText } : todo
+      )
     )
   }
 
@@ -82,7 +81,6 @@ function App() {
             addTodo();
           }
         }}
-        placeholder="일정을 입력하세요"
       />
       <button onClick={addTodo}>[입력]</button>
 

@@ -18,8 +18,16 @@ function TodoItem({ todo, checkTodo, onDelete, updateTodo }) {
                 ? (<input
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            submitEdit();
+                        }
+                    }}
+
                 />)
-                : (<span>{todo.text}</span>)
+                : (<span onDoubleClick={() => { setEditText(todo.text), setEdit(true) }}>
+                    {todo.text}
+                </span>)
             }
             {isEdit
                 ? (<button onClick={submitEdit}>[저장]</button>)
