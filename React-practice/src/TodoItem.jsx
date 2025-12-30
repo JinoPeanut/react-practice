@@ -1,13 +1,9 @@
 import { useState } from "react";
-function TodoItem({ todo, checkTodo, onDelete, updateTodo }) {
+function TodoItem({
+    todo, checkTodo, onDelete, editingId, editingText, setEditingText, startEdit, submitEdit,
+}) {
 
-    const [isEdit, setEdit] = useState(false);
-    const [editText, setEditText] = useState(todo.text);
-
-    const submitEdit = () => {
-        updateTodo(todo.id, editText);
-        setEdit(false);
-    }
+    const isEdit = editingId === todo.id;
 
     return (
         <li style={{ textDecoration: todo.done ? "line-through" : "none" }}>
@@ -16,8 +12,8 @@ function TodoItem({ todo, checkTodo, onDelete, updateTodo }) {
             </button>
             {isEdit
                 ? (<input
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
+                    value={editingText}
+                    onChange={(e) => setEditingText(e.target.value)}
                     onKeyDown={(e) => {
                         if (e.key === "Enter") {
                             submitEdit();
@@ -25,13 +21,13 @@ function TodoItem({ todo, checkTodo, onDelete, updateTodo }) {
                     }}
 
                 />)
-                : (<span onDoubleClick={() => { setEditText(todo.text), setEdit(true) }}>
+                : (<span onDoubleClick={() => startEdit(todo)}>
                     {todo.text}
                 </span>)
             }
             {isEdit
-                ? (<button onClick={submitEdit}>[저장]</button>)
-                : (<button onClick={() => { setEditText(todo.text), setEdit(true) }}>[수정]</button>)
+                ? (<button onClick={() => submitEdit()}>[저장]</button>)
+                : (<button onClick={() => startEdit(todo)}>[수정]</button>)
             }
             <button onClick={() => onDelete(todo.id)}>[삭제]</button>
         </li>

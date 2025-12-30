@@ -57,12 +57,22 @@ function App() {
     setText("");
   }
 
-  const updateTodo = (id, newText) => {
-    setTodos(prev =>
-      prev.map(todo =>
-        todo.id === id ? { ...todo, text: newText } : todo
-      )
-    )
+  const [editingId, setEditingId] = useState(null);
+  const [editingText, setEditingText] = useState("");
+
+  const startEdit = (todo) => {
+    setEditingId(todo.id);
+    setEditingText(todo.text)
+  }
+
+  const submitEdit = () => {
+    setTodos(prev => prev.map(
+      todo => todo.id === editingId
+        ? { ...todo, text: editingText }
+        : todo
+    ))
+    setEditingId(null);
+    setEditingText("");
   }
 
   return (
@@ -91,7 +101,11 @@ function App() {
             todo={todo}
             checkTodo={checkTodo}
             onDelete={onDelete}
-            updateTodo={updateTodo}
+            editingId={editingId}
+            startEdit={startEdit}
+            editingText={editingText}
+            setEditingText={setEditingText}
+            submitEdit={submitEdit}
           ></TodoItem>
         ))}
       </ul>
