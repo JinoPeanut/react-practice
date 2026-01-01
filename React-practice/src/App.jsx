@@ -2,28 +2,33 @@ import { useState } from "react";
 import { useEffect } from "react";
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [data, setData] = useState(null);
+  const [isLoading, setLoading] = useState(false);
+  const [text, setText] = useState("");
 
   useEffect(() => {
-    const timerId = setInterval(() => {
-      setCount(prev => prev + 1)
-    }, 1000)
+    if (!isLoading) return;
+
+    const timeId = setTimeout(() => {
+      setData({ id: 1, title: "useEffect 연습" });
+      setLoading(false);
+    }, 2000);
 
     return () => {
-      clearInterval(timerId);
-      console.log("Interval 정리됨");
+      clearTimeout(timeId);
     }
-
-  }, [])
-
-  const resetCount = () => {
-    setCount(0);
-  }
+  }, [isLoading])
 
   return (
     <div>
-      <p>count: {count}</p>
-      <button onClick={resetCount}>[초기화]</button>
+      <input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <button onClick={() => setLoading(true)} disabled={isLoading}>[데이터 불러오기]</button>
+
+      {isLoading && <p>로딩중...</p>}
+      {data && <p>제목: {data.title}</p>}
     </div>
   )
 }
