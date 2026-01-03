@@ -5,30 +5,33 @@ function App() {
   const [data, setData] = useState(null);
   const [isLoading, setLoading] = useState(false);
   const [text, setText] = useState("");
+  const [resultText, setResult] = useState("");
 
   useEffect(() => {
-    if (!isLoading) return;
+    if (text === "") return;
+
+    setLoading(true);
 
     const timeId = setTimeout(() => {
-      setData({ id: 1, title: "useEffect 연습" });
+      setResult(text);
       setLoading(false);
     }, 2000);
 
     return () => {
       clearTimeout(timeId);
     }
-  }, [isLoading])
+  }, [isLoading, text])
 
   return (
     <div>
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
+
       />
-      <button onClick={() => setLoading(true)} disabled={isLoading}>[데이터 불러오기]</button>
 
       {isLoading && <p>로딩중...</p>}
-      {data && <p>제목: {data.title}</p>}
+      {resultText && <p>{resultText}</p>}
     </div>
   )
 }
