@@ -2,36 +2,48 @@ import { useState } from "react";
 import { useEffect } from "react";
 
 function App() {
-  const [data, setData] = useState(null);
-  const [isLoading, setLoading] = useState(false);
+
   const [text, setText] = useState("");
-  const [resultText, setResult] = useState("");
+  const [result, setResult] = useState("");
+  const [status, setStatus] = useState("idle");
 
   useEffect(() => {
-    if (text === "") return;
-
-    setLoading(true);
+    if (text === "") {
+      setResult("");
+      setStatus("idle");
+      return;
+    }
+    setStatus("typing");
 
     const timeId = setTimeout(() => {
-      setResult(text);
-      setLoading(false);
-    }, 2000);
+      setStatus("saving");
+
+      setTimeout(() => {
+        setResult(text);
+        setStatus("saved");
+      }, 1000)
+    }, 2000)
 
     return () => {
       clearTimeout(timeId);
     }
-  }, [isLoading, text])
+  }, [text])
+
+  const handleChange = (e) => {
+    setText(e.target.value);
+  }
 
   return (
     <div>
       <input
         value={text}
-        onChange={(e) => setText(e.target.value)}
-
+        onChange={handleChange}
       />
+      {status === "typing" && <p>입력중...</p>}
+      {status === "saving" && <p>저장중...</p>}
+      {status === "saved" && <p>저장 완료</p>}
 
-      {isLoading && <p>로딩중...</p>}
-      {resultText && <p>{resultText}</p>}
+      {result && <p>{result}</p>}
     </div>
   )
 }
