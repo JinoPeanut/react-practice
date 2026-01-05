@@ -1,35 +1,39 @@
 import { useState } from "react";
 import { useEffect } from "react";
+import { useRef } from "react";
 
 function App() {
 
   const [text, setText] = useState("");
-  const [result, setResult] = useState("");
-  const [status, setStatus] = useState("idle");
+  const isTypingRef = useRef(false);
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
     if (text === "") {
-      setResult("");
-      setStatus("idle");
+      isTypingRef.current = false;
       return;
     }
-    setStatus("typing");
 
-    const timeId = setTimeout(() => {
-      setStatus("saving");
+    if (!isTypingRef.current) {
+      console.log("입력 시작");
+      isTypingRef.current = true;
+    }
 
-      setTimeout(() => {
-        setResult(text);
-        setStatus("saved");
-      }, 1000)
-    }, 2000)
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      console.log("입력 멈춤");
+      isTypingRef.current = false;
+    }, 1000)
 
     return () => {
-      clearTimeout(timeId);
+      clearTimeout(timeoutRef.current);
     }
   }, [text])
 
-  const handleChange = (e) => {
+  const inputHandler = (e) => {
     setText(e.target.value);
   }
 
@@ -37,13 +41,8 @@ function App() {
     <div>
       <input
         value={text}
-        onChange={handleChange}
+        onChange={inputHandler}
       />
-      {status === "typing" && <p>입력중...</p>}
-      {status === "saving" && <p>저장중...</p>}
-      {status === "saved" && <p>저장 완료</p>}
-
-      {result && <p>{result}</p>}
     </div>
   )
 }
