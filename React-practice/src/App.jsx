@@ -5,43 +5,38 @@ import { useRef } from "react";
 function App() {
 
   const [text, setText] = useState("");
-  const isTypingRef = useRef(false);
-  const timeoutRef = useRef(null);
+  const timeId = useRef(null);
+  const isSavedRef = useRef(false);
 
   useEffect(() => {
-    if (text === "") {
-      isTypingRef.current = false;
-      return;
+    if (text === "") return;
+
+    if (timeId.current) {
+      clearTimeout(timeId.current);
     }
 
-    if (!isTypingRef.current) {
-      console.log("입력 시작");
-      isTypingRef.current = true;
-    }
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    timeoutRef.current = setTimeout(() => {
-      console.log("입력 멈춤");
-      isTypingRef.current = false;
-    }, 1000)
+    timeId.current = setTimeout(() => {
+      if (!isSavedRef.current) {
+        console.log("자동 저장됨");
+        isSavedRef.current = true;
+      }
+    }, 3000)
 
     return () => {
-      clearTimeout(timeoutRef.current);
+      clearTimeout(timeId.current);
     }
   }, [text])
 
-  const inputHandler = (e) => {
+  const handleChange = (e) => {
     setText(e.target.value);
+    isSavedRef.current = false;
   }
 
   return (
     <div>
       <input
         value={text}
-        onChange={inputHandler}
+        onChange={handleChange}
       />
     </div>
   )
