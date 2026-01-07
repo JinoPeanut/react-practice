@@ -3,41 +3,39 @@ import { useEffect } from "react";
 import { useRef } from "react";
 
 function App() {
-
   const [text, setText] = useState("");
-  const timeId = useRef(null);
-  const isSavedRef = useRef(false);
+  const [resultText, setResult] = useState("");
+  const isTypingRef = useRef(false);
+  const timeoutRef = useRef(null);
 
-  useEffect(() => {
-    if (text === "") return;
+  const inputHandle = (e) => {
+    const value = e.target.value;
+    setText(value);
 
-    if (timeId.current) {
-      clearTimeout(timeId.current);
+    if (!isTypingRef.current) {
+      console.log("입력 시작");
+      isTypingRef.current = true;
     }
 
-    timeId.current = setTimeout(() => {
-      if (!isSavedRef.current) {
-        console.log("자동 저장됨");
-        isSavedRef.current = true;
-      }
-    }, 3000)
-
-    return () => {
-      clearTimeout(timeId.current);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
     }
-  }, [text])
 
-  const handleChange = (e) => {
-    setText(e.target.value);
-    isSavedRef.current = false;
+    timeoutRef.current = setTimeout(() => {
+      console.log("검색 요청")
+      isTypingRef.current = false;
+      setResult(value);
+    }, 1000)
   }
 
   return (
     <div>
       <input
         value={text}
-        onChange={handleChange}
+        onChange={inputHandle}
       />
+      {text ? (<p>입력중...</p>) : (<p></p>)}
+      <p>검색 결과: {resultText}</p>
     </div>
   )
 }
