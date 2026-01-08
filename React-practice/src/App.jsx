@@ -3,12 +3,17 @@ import { useEffect } from "react";
 import { useRef } from "react";
 
 function App() {
+
   const [text, setText] = useState("");
-  const [resultText, setResult] = useState("");
-  const isTypingRef = useRef(false);
+  const [result, setResult] = useState("");
+  const [isLoading, setLoading] = useState(false);
+  const [isTyping, setTyping] = useState(false);
+
+  const isTypingRef = useRef();
   const timeoutRef = useRef(null);
 
   const inputHandle = (e) => {
+
     const value = e.target.value;
     setText(value);
 
@@ -17,15 +22,23 @@ function App() {
       isTypingRef.current = true;
     }
 
+    setTyping(true);
+
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
 
     timeoutRef.current = setTimeout(() => {
-      console.log("검색 요청")
+      console.log("검색 요청");
       isTypingRef.current = false;
-      setResult(value);
-    }, 1000)
+      setTyping(false);
+      setLoading(true);
+
+      setTimeout(() => {
+        setLoading(false);
+        setResult(value);
+      }, 1000)
+    }, 1500)
   }
 
   return (
@@ -34,8 +47,9 @@ function App() {
         value={text}
         onChange={inputHandle}
       />
-      {text ? (<p>입력중...</p>) : (<p></p>)}
-      <p>검색 결과: {resultText}</p>
+      {isTyping ? <p>입력중입니다...</p> : <p></p>}
+      {isLoading && <p>로딩중...</p>}
+      {<p>검색결과: {result}</p>}
     </div>
   )
 }
