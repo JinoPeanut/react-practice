@@ -4,41 +4,33 @@ import { useRef } from "react";
 
 function App() {
 
-  const [text, setText] = useState("");
-  const [result, setResult] = useState("");
-  const [isLoading, setLoading] = useState(false);
-  const [isTyping, setTyping] = useState(false);
+  const [text, setText] = useState(() => {
+    return localStorage.getItem("savedText") || "";
+  });
 
-  const isTypingRef = useRef();
+
   const timeoutRef = useRef(null);
 
-  const inputHandle = (e) => {
-
-    const value = e.target.value;
-    setText(value);
-
-    if (!isTypingRef.current) {
-      console.log("입력 시작");
-      isTypingRef.current = true;
-    }
-
-    setTyping(true);
+  useEffect(() => {
+    if (text === "") return;
 
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
 
     timeoutRef.current = setTimeout(() => {
-      console.log("검색 요청");
-      isTypingRef.current = false;
-      setTyping(false);
-      setLoading(true);
+      localStorage.setItem("savedText", text);
+      console.log("자동 저장됨");
+    }, 1000)
 
-      setTimeout(() => {
-        setLoading(false);
-        setResult(value);
-      }, 1000)
-    }, 1500)
+    return () => {
+      clearTimeout(timeoutRef.current);
+    }
+  }, [text])
+
+  const inputHandle = (e) => {
+    const value = e.target.value;
+    setText(value);
   }
 
   return (
@@ -47,9 +39,6 @@ function App() {
         value={text}
         onChange={inputHandle}
       />
-      {isTyping ? <p>입력중입니다...</p> : <p></p>}
-      {isLoading && <p>로딩중...</p>}
-      {<p>검색결과: {result}</p>}
     </div>
   )
 }
