@@ -4,33 +4,21 @@ import { useRef } from "react";
 
 function App() {
 
-  const [text, setText] = useState(() => {
-    return localStorage.getItem("savedText") || "";
-  });
-
-
-  const timeoutRef = useRef(null);
-
-  useEffect(() => {
-    if (text === "") return;
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    timeoutRef.current = setTimeout(() => {
-      localStorage.setItem("savedText", text);
-      console.log("자동 저장됨");
-    }, 1000)
-
-    return () => {
-      clearTimeout(timeoutRef.current);
-    }
-  }, [text])
+  const [text, setText] = useState("");
+  const textRef = useRef("");
 
   const inputHandle = (e) => {
     const value = e.target.value;
     setText(value);
+
+    if (value.length > textRef.current.length) {
+      console.log("입력됨");
+    }
+    if (value.length < textRef.current.length) {
+      console.log("삭제됨");
+    }
+
+    textRef.current = value;
   }
 
   return (
@@ -39,6 +27,7 @@ function App() {
         value={text}
         onChange={inputHandle}
       />
+
     </div>
   )
 }
