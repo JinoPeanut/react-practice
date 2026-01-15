@@ -10,37 +10,33 @@ function App() {
 
   const timeoutRef = useRef(null);
   const requestIdRef = useRef(0);
-  const cacheRef = useRef({});
 
   const inputHandle = (e) => {
+    const delay = Math.floor(Math.random() * 1501) + 500;
     const value = e.target.value;
     setText(value);
 
-    if (value === "") {
+    if (!value) {
       setStatus("idle");
       return;
     }
 
-    if (cacheRef.current[value]) {
-      setResult(cacheRef.current[value]);
-      return;
-    }
-
-    requestIdRef.current += 1;
-    const request = requestIdRef.current;
+    setStatus("typing");
 
     clearTimeout(timeoutRef.current);
 
-    setStatus("typing");
+    const request = ++requestIdRef.current;
 
     timeoutRef.current = setTimeout(() => {
-      setStatus("loading");
-      if (request === requestIdRef.current) {
-        console.log("검색 요청");
-        const fakeResult = value;
-        cacheRef.current[value] = fakeResult;
-        setResult(fakeResult);
-      }
+      if (request !== requestIdRef.current) return;
+      setStatus("searching");
+
+      setTimeout(() => {
+        if (request !== requestIdRef.current) return;
+        setStatus("success");
+        setResult(value);
+      }, delay)
+
     }, 1000)
   }
 
@@ -49,10 +45,11 @@ function App() {
       <input
         value={text}
         onChange={inputHandle}
+
       />
-      {status === "typing" && (<p>입력중...</p>)}
-      {status === "loading" && <p>로딩중...</p>}
-      {result && <p>겸색 결과: {result}</p>}
+      {status === "typing" && <p>입력중...</p>}
+      {status === "searching" && <p>검색중...</p>}
+      {status === "success" && text && <p>확정 결과: {result}</p>}
     </div>
   )
 }
