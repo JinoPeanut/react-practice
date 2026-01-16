@@ -8,48 +8,48 @@ function App() {
   const [result, setResult] = useState("");
   const [status, setStatus] = useState("idle");
 
-  const timeoutRef = useRef(null);
-  const requestIdRef = useRef(0);
-
-  const inputHandle = (e) => {
-    const delay = Math.floor(Math.random() * 1501) + 500;
-    const value = e.target.value;
-    setText(value);
-
-    if (!value) {
-      setStatus("idle");
+  useEffect(() => {
+    if (!text) {
       return;
     }
 
     setStatus("typing");
 
-    clearTimeout(timeoutRef.current);
+    const timeout = setTimeout(() => {
+      console.log("검색중...");
+      setStatus("loading");
+    }, 800)
 
-    const request = ++requestIdRef.current;
+    return () => {
+      clearTimeout(timeout);
+    }
+  }, [text])
 
-    timeoutRef.current = setTimeout(() => {
-      if (request !== requestIdRef.current) return;
-      setStatus("searching");
+  useEffect(() => {
+    if (status !== "loading") return;
 
-      setTimeout(() => {
-        if (request !== requestIdRef.current) return;
-        setStatus("success");
-        setResult(value);
-      }, delay)
+    const delay = Math.floor(Math.random() * 1001) + 500;
 
-    }, 1000)
-  }
+    const callApi = setTimeout(() => {
+      console.log("API 요청...");
+      setStatus("success");
+      setResult(text);
+
+    }, delay)
+
+    return () => clearTimeout(callApi);
+
+  }, [status])
 
   return (
     <div>
       <input
         value={text}
-        onChange={inputHandle}
-
+        onChange={(e) => setText(e.target.value)}
       />
       {status === "typing" && <p>입력중...</p>}
-      {status === "searching" && <p>검색중...</p>}
-      {status === "success" && text && <p>확정 결과: {result}</p>}
+      {status === "loading" && <p>검색중...</p>}
+      {status === "success" && <p>결과: {result}</p>}
     </div>
   )
 }
