@@ -1,11 +1,20 @@
 import StudentList from "./StudentList"
+import { useState } from "react";
 function StudentItem({ student, setStudents }) {
 
     const handleBtn = () => {
         setStudents(prev => prev.map(
-            s => s.id === student.id
-                ? { ...s, checked: !s.checked }
-                : s
+            s => {
+                if (s.id !== student.id) return s;
+
+                const nextChecked = !s.checked;
+
+                return {
+                    ...s,
+                    checked: nextChecked,
+                    checkedAt: nextChecked ? Date.now() : null,
+                }
+            }
         ))
     }
 
