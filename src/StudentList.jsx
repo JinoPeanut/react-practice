@@ -2,13 +2,11 @@ import StudentItem from "./StudentItem";
 import { useState } from "react";
 import { useMemo } from "react";
 
-function StudentList({ students, setStudents }) {
-
-    const [filter, setFilter] = useState("All");
+function StudentList({ students, setStudents, filter, setFilter, name, setName }) {
 
     const sortStudent = [...students].sort((a, b) => {
         if (a.checked === b.checked) {
-            return a.checkedAt - b.checkedAt;
+            return (a.checkedAt ?? 0) - (b.checkedAt ?? 0);
         }
         return b.checked - a.checked;
     })
@@ -33,27 +31,74 @@ function StudentList({ students, setStudents }) {
         if (filter === "Todo") return !s.checked;
     });
 
-    const resetChecked = () => {
-        setStudents(students.map(prev => ({
-            ...prev,
-            checked: false,
-        })))
+    const resetChecked = async () => {
+        await Promise.all(
+            students.map(student =>
+                fetch(`http://localhost:3001/students/${student.id}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        checked: false,
+                        checkedAt: null,
+                    })
+                })
+            )
+        );
+
+        setStudents(prev => prev.map(
+            s => ({
+                ...s,
+                checked: false,
+                checkedAt: null,
+            })
+        ))
     }
 
     const handleBtn = (id) => {
-        setStudents(prev => prev.map(
-            s => {
-                if (s.id !== id) return s;
+        fetch(`http://localhost:3001/students/${id}`, {
+            method: "PATCH",
+            headers: {
+                "Content-type": "application/json",
+            },
+            body: JSON.stringify({
+                checked: true,
+                checkedAt: Date.now(),
+            })
+        })
+            .then(res => res.json())
+            .then(updateStudent => {
+                setStudents(prev => prev.map(
+                    student => student.id === id
+                        ? updateStudent
+                        : student
+                ))
+            })
+    }
 
-                const nextChecked = !s.checked;
+    const addStudent = () => {
+        if (!name.trim()) return;
 
-                return {
-                    ...s,
-                    checked: nextChecked,
-                    checkedAt: nextChecked ? Date.now() : null,
-                }
-            }
-        ))
+        fetch("http://localhost:3001/students", {
+            method: "POST",
+            headers: {
+                "Content-type": "application/json"
+            },
+            body: JSON.stringify({
+                name,
+                checked: false,
+                checkedAt: null,
+            })
+        })
+            .then(() =>
+                fetch("http://localhost:3001/students")
+                    .then(res => res.json())
+                    .then(data => {
+                        setStudents(data);
+                        setName("");
+                    })
+            )
     }
 
     return (
@@ -66,7 +111,7 @@ function StudentList({ students, setStudents }) {
             <ul>
                 {filterStudent.map(student => {
                     const time = student.checked && student.checkedAt
-                        ? new Date(students.checkedAt).toLocaleTimeString([], {
+                        ? new Date(student.checkedAt).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
                         })
@@ -91,6 +136,14 @@ function StudentList({ students, setStudents }) {
             <p>출석완료: {stats.completed}명</p>
             <p>미출석: {stats.unCompleted}명</p>
             <p>출석률: {stats.percent}%</p>
+
+            <div>
+                <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                />
+                <button onClick={addStudent}>[추가]</button>
+            </div>
         </div>
     )
 }

@@ -1,0 +1,25 @@
+{
+  "students": [
+    {
+      "id": 1,
+      "name": "철수",
+      "checked": false
+    },
+    {
+      "id": 2,
+      "name": "영희",
+      "checked": false
+    },
+    {
+      "id": 3,
+      "name": "민수",
+      "checked": false
+    },
+    {
+      "name": "훈이",
+      "checked": false,
+      "checkedAt": null,
+      "id": 4
+    }
+  ]
+}

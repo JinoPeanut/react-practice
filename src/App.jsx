@@ -7,11 +7,16 @@ import TimeDisplay from "./TimeDisplay";
 
 function App() {
 
-  const [students, setStudents] = useState([
-    { id: 1, name: "철수", checked: false },
-    { id: 2, name: "영희", checked: false },
-    { id: 3, name: "민수", checked: false },
-  ]);
+  const [filter, setFilter] = useState("All");
+
+  const [students, setStudents] = useState([]);
+  const [name, setName] = useState("");
+
+  useEffect(() => {
+    fetch("http://localhost:3001/students")
+      .then(res => res.json())
+      .then(data => setStudents(data))
+  }, [])
 
   return (
     <div>
@@ -19,6 +24,10 @@ function App() {
       <StudentList
         students={students}
         setStudents={setStudents}
+        filter={filter}
+        setFilter={setFilter}
+        name={name}
+        setName={setName}
       />
     </div>
   )
