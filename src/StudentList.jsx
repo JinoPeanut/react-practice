@@ -57,23 +57,40 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
     }
 
     const handleBtn = (id) => {
+        const target = students.find(s => s.id === id);
+        if (!target) return;
+
+        const nextChecked = !target.checked;
+        const prevStudent = [...students];
+
+        setStudents(prev => prev.map(
+            student => student.id === id
+                ? {
+                    ...student,
+                    checked: nextChecked,
+                    checkedAt: nextChecked ? Date.now() : null,
+                }
+                : student
+        ))
+
         fetch(`http://localhost:3001/students/${id}`, {
             method: "PATCH",
             headers: {
                 "Content-type": "application/json",
             },
             body: JSON.stringify({
-                checked: true,
-                checkedAt: Date.now(),
+                checked: nextChecked,
+                checkedAt: nextChecked ? Date.now() : null,
             })
         })
-            .then(res => res.json())
-            .then(updateStudent => {
-                setStudents(prev => prev.map(
-                    student => student.id === id
-                        ? updateStudent
-                        : student
-                ))
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error("출석체크 실패");
+                }
+            })
+            .catch(() => {
+                alert("출석체크 실패");
+                setStudents(prevStudent);
             })
     }
 
@@ -101,6 +118,30 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
             )
     }
 
+    const deleteStudent = (id) => {
+        const prevStudent = [...students];
+
+        setStudents(prev => prev.filter(
+            s => s.id !== id
+        ))
+
+        fetch(`http://localhost:3001/students/${id}`, {
+            method: "DELETE",
+            headers: {
+                "Content-type": "application/json"
+            }
+        })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error("삭제 실패");
+                }
+            })
+            .catch(() => {
+                alert("삭제 실패");
+                setStudents(prevStudent);
+            })
+    }
+
     return (
         <div>
             <div>
@@ -123,6 +164,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                             student={student}
                             time={time}
                             onToggle={() => handleBtn(student.id)}
+                            onDelete={() => deleteStudent(student.id)}
                         />
                     )
                 })}
