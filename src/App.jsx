@@ -15,7 +15,9 @@ function App() {
   useEffect(() => {
     fetch("http://localhost:3001/students")
       .then(res => res.json())
-      .then(data => setStudents(data))
+      .then(data => setStudents(data.map(
+        s => ({ ...s, isLoading: false })
+      )))
   }, [])
 
   return (

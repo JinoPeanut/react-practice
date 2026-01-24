@@ -58,7 +58,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
 
     const handleBtn = (id) => {
         const target = students.find(s => s.id === id);
-        if (!target) return;
+        if (!target || target.isLoading) return;
 
         const nextChecked = !target.checked;
         const prevStudent = [...students];
@@ -69,6 +69,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                     ...student,
                     checked: nextChecked,
                     checkedAt: nextChecked ? Date.now() : null,
+                    isLoading: true,
                 }
                 : student
         ))
@@ -88,8 +89,16 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                     throw new Error("출석체크 실패");
                 }
             })
+            .then(() => {
+                setStudents(prev => prev.map(
+                    s => s.id === id
+                        ? { ...s, isLoading: false }
+                        : s
+                ))
+            })
             .catch(() => {
                 alert("출석체크 실패");
+                setLoading(false);
                 setStudents(prevStudent);
             })
     }
@@ -119,6 +128,10 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
     }
 
     const deleteStudent = (id) => {
+        if (id === 1) {
+            alert("1번은 삭제할 수 없습니다");
+            return;
+        }
         const prevStudent = [...students];
 
         setStudents(prev => prev.filter(
@@ -140,6 +153,55 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                 alert("삭제 실패");
                 setStudents(prevStudent);
             })
+    }
+
+    const allCheck = async () => {
+        const targets = students.filter(s => !s.checked);
+
+        if (targets.length === 0) return;
+
+        const now = Date.now();
+
+        setStudents(prev => prev.map(
+            s => s.checked
+                ? s
+                : {
+                    ...s,
+                    isLoading: true,
+                    error: null,
+                }
+        ))
+
+        const result = [];
+
+        for (const student of targets) {
+            try {
+                const res = await fetch(`http://localhost:3001/students/${student.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-type": "application/json" },
+                    body: JSON.stringify({
+                        checked: true,
+                        checkedAt: now,
+                    })
+                })
+
+                if (!res.ok) throw new Error();
+
+                result.push({ id: student.id, success: true })
+            } catch {
+                result.push({ id: student.id, success: false })
+            }
+        }
+        setStudents(prev => prev.map(
+            s => {
+                const r = result.find(r => r.id === s.id);
+                if (!r) return s;
+
+                return r.success
+                    ? { ...s, checked: true, isLoading: false }
+                    : { ...s, checked: false, isLoading: false, error: "Fail" }
+            }
+        ))
     }
 
     return (
@@ -165,6 +227,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                             time={time}
                             onToggle={() => handleBtn(student.id)}
                             onDelete={() => deleteStudent(student.id)}
+                            isLoading={isLoading}
                         />
                     )
                 })}
@@ -185,6 +248,9 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                     onChange={(e) => setName(e.target.value)}
                 />
                 <button onClick={addStudent}>[추가]</button>
+            </div>
+            <div>
+                <button onClick={allCheck}>[전체 출석]</button>
             </div>
         </div>
     )
