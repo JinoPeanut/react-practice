@@ -171,38 +171,88 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                     error: null,
                 }
         ))
+        const result = await Promise.all(
+            targets.map(async (student) => {
+                try {
+                    const res = await fetch(`http://localhost:3001/students/${student.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-type": "application/json" },
+                        body: JSON.stringify({
+                            checked: true,
+                            checkedAt: now,
+                        })
+                    });
 
-        const result = [];
+                    if (!res.ok) throw new Error();
 
-        for (const student of targets) {
-            try {
-                const res = await fetch(`http://localhost:3001/students/${student.id}`, {
-                    method: "PATCH",
-                    headers: { "Content-type": "application/json" },
-                    body: JSON.stringify({
-                        checked: true,
-                        checkedAt: now,
-                    })
-                })
+                    return { id: student.id, success: true }
+                } catch {
+                    return { id: student.id, success: false }
+                }
+            })
+        );
 
-                if (!res.ok) throw new Error();
-
-                result.push({ id: student.id, success: true })
-            } catch {
-                result.push({ id: student.id, success: false })
-            }
-        }
         setStudents(prev => prev.map(
             s => {
                 const r = result.find(r => r.id === s.id);
                 if (!r) return s;
 
                 return r.success
-                    ? { ...s, checked: true, isLoading: false }
+                    ? { ...s, checked: true, checkedAt: now, isLoading: false }
                     : { ...s, checked: false, isLoading: false, error: "Fail" }
             }
         ))
     }
+
+    const retryCheck = async () => {
+        const targets = students.filter(s => s.error === "Fail");
+
+        if (targets.length === 0) return;
+
+        const now = Date.now();
+
+        setStudents(prev => prev.map(
+            s => s.error === "Fail"
+                ? { ...s, isLoading: true, error: null }
+                : s
+        ));
+
+        const results = await Promise.all(targets.map(
+            async (student) => {
+                try {
+                    const res = await fetch(`http://localhost:3001/students/${student.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-type": "application/json" },
+                        body: JSON.stringify({
+                            checked: true,
+                            checkedAt: now,
+                        })
+                    })
+
+                    if (!res.ok) throw new Error();
+
+                    return { id: student.id, success: true }
+                } catch {
+                    return { id: student.id, success: false }
+                }
+            }
+        ));
+
+        const resultMap = new Map(results.map(r => [r.id, r]));
+
+        setStudents(prev => prev.map(
+            s => {
+                const r = resultMap.get(s.id);
+                if (!r) return s;
+
+                return r.success
+                    ? { ...s, checked: true, checkedAt: now, isLoading: false }
+                    : { ...s, checked: false, isLoading: false, error: "Fail" }
+            }
+        ))
+    }
+
+    const hasError = students.some(s => s.error === "Fail");
 
     return (
         <div>
@@ -250,7 +300,10 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                 <button onClick={addStudent}>[추가]</button>
             </div>
             <div>
-                <button onClick={allCheck}>[전체 출석]</button>
+                {hasError
+                    ? <button onClick={retryCheck}>[실패한 출석 다시시도]</button>
+                    : <button onClick={allCheck}>[전체 출석]</button>
+                }
             </div>
         </div>
     )
