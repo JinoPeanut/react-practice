@@ -1,8 +1,12 @@
 import StudentItem from "./StudentItem";
 import { useState } from "react";
 import { useMemo } from "react";
+import { useStudentAPI } from "./useStudentAPI";
 
 function StudentList({ students, setStudents, filter, setFilter, name, setName }) {
+
+    const { checkMany } = useStudentAPI();
+    const { toggleCheck } = useStudentAPI();
 
     const sortStudent = [...students].sort((a, b) => {
         if (a.checked === b.checked) {
@@ -56,7 +60,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
         ))
     }
 
-    const handleBtn = (id) => {
+    const handleBtn = async (id) => {
         const target = students.find(s => s.id === id);
         if (!target || target.isLoading) return;
 
@@ -74,33 +78,18 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                 : student
         ))
 
-        fetch(`http://localhost:3001/students/${id}`, {
-            method: "PATCH",
-            headers: {
-                "Content-type": "application/json",
-            },
-            body: JSON.stringify({
-                checked: nextChecked,
-                checkedAt: nextChecked ? Date.now() : null,
-            })
-        })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error("출석체크 실패");
-                }
-            })
-            .then(() => {
-                setStudents(prev => prev.map(
-                    s => s.id === id
-                        ? { ...s, isLoading: false }
-                        : s
-                ))
-            })
-            .catch(() => {
-                alert("출석체크 실패");
-                setLoading(false);
-                setStudents(prevStudent);
-            })
+        const result = await toggleCheck(id, nextChecked, checkedAt);
+
+        if (result.success) {
+            setStudents(prev => prev.map(
+                s => s.id === id
+                    ? { ...s, isLoading: false }
+                    : s
+            ))
+        } else {
+            alert("출석체크 실패");
+            setStudents(prevStudent);
+        }
     }
 
     const addStudent = () => {
@@ -171,30 +160,14 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                     error: null,
                 }
         ))
-        const result = await Promise.all(
-            targets.map(async (student) => {
-                try {
-                    const res = await fetch(`http://localhost:3001/students/${student.id}`, {
-                        method: "PATCH",
-                        headers: { "Content-type": "application/json" },
-                        body: JSON.stringify({
-                            checked: true,
-                            checkedAt: now,
-                        })
-                    });
 
-                    if (!res.ok) throw new Error();
+        const results = await checkMany(targets, now);
 
-                    return { id: student.id, success: true }
-                } catch {
-                    return { id: student.id, success: false }
-                }
-            })
-        );
+        const resultMap = new Map(results.map(r => [r.id, r]));
 
         setStudents(prev => prev.map(
             s => {
-                const r = result.find(r => r.id === s.id);
+                const r = resultMap.get(s.id);
                 if (!r) return s;
 
                 return r.success
@@ -253,6 +226,8 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
     }
 
     const hasError = students.some(s => s.error === "Fail");
+
+
 
     return (
         <div>
