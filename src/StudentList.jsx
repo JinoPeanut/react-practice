@@ -7,6 +7,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
 
     const { checkMany } = useStudentAPI();
     const { toggleCheck } = useStudentAPI();
+    const { resetCheck } = useStudentAPI();
 
     const sortStudent = [...students].sort((a, b) => {
         if (a.checked === b.checked) {
@@ -36,20 +37,13 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
     });
 
     const resetChecked = async () => {
-        await Promise.all(
-            students.map(student =>
-                fetch(`http://localhost:3001/students/${student.id}`, {
-                    method: "PATCH",
-                    headers: {
-                        "Content-type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        checked: false,
-                        checkedAt: null,
-                    })
-                })
-            )
-        );
+        const result = await resetCheck(students);
+        const hasFail = result.some(r => !r.success);
+
+        if (hasFail) {
+            alert("초기화 실패");
+            return;
+        }
 
         setStudents(prev => prev.map(
             s => ({
