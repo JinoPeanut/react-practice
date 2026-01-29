@@ -2,12 +2,11 @@ import StudentItem from "./StudentItem";
 import { useState } from "react";
 import { useMemo } from "react";
 import { useStudentAPI } from "./useStudentAPI";
+import { API_ERROR } from "./apiError";
 
 function StudentList({ students, setStudents, filter, setFilter, name, setName }) {
 
-    const { checkMany } = useStudentAPI();
-    const { toggleCheck } = useStudentAPI();
-    const { resetCheck } = useStudentAPI();
+    const { checkMany, toggleCheck, resetCheck, handleApiError } = useStudentAPI();
 
     const sortStudent = [...students].sort((a, b) => {
         if (a.checked === b.checked) {
@@ -38,7 +37,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
 
     const resetChecked = async () => {
         const result = await resetCheck(students);
-        const hasFail = result.some(r => !r.success);
+        const hasFail = result.some(r => !r.ok);
 
         if (hasFail) {
             alert("초기화 실패");
@@ -74,14 +73,14 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
 
         const result = await toggleCheck(id, nextChecked, checkedAt);
 
-        if (result.success) {
+        if (result.ok) {
             setStudents(prev => prev.map(
                 s => s.id === id
                     ? { ...s, isLoading: false }
                     : s
             ))
         } else {
-            alert("출석체크 실패");
+            alert(handleApiError(result.error));
             setStudents(prevStudent);
         }
     }
@@ -164,46 +163,27 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                 const r = resultMap.get(s.id);
                 if (!r) return s;
 
-                return r.success
+                return r.ok
                     ? { ...s, checked: true, checkedAt: now, isLoading: false }
-                    : { ...s, checked: false, isLoading: false, error: "Fail" }
+                    : { ...s, checked: false, isLoading: false, error: r.error }
             }
         ))
     }
 
     const retryCheck = async () => {
-        const targets = students.filter(s => s.error === "Fail");
+        const targets = students.filter(s => s.error?.type === API_ERROR.NETWORK);
 
         if (targets.length === 0) return;
 
         const now = Date.now();
 
         setStudents(prev => prev.map(
-            s => s.error === "Fail"
+            s => s.error?.type === API_ERROR.NETWORK
                 ? { ...s, isLoading: true, error: null }
                 : s
         ));
 
-        const results = await Promise.all(targets.map(
-            async (student) => {
-                try {
-                    const res = await fetch(`http://localhost:3001/students/${student.id}`, {
-                        method: "PATCH",
-                        headers: { "Content-type": "application/json" },
-                        body: JSON.stringify({
-                            checked: true,
-                            checkedAt: now,
-                        })
-                    })
-
-                    if (!res.ok) throw new Error();
-
-                    return { id: student.id, success: true }
-                } catch {
-                    return { id: student.id, success: false }
-                }
-            }
-        ));
+        const results = await checkMany(targets, now);
 
         const resultMap = new Map(results.map(r => [r.id, r]));
 
@@ -212,14 +192,16 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                 const r = resultMap.get(s.id);
                 if (!r) return s;
 
-                return r.success
+                return r.ok
                     ? { ...s, checked: true, checkedAt: now, isLoading: false }
-                    : { ...s, checked: false, isLoading: false, error: "Fail" }
+                    : { ...s, checked: false, isLoading: false, error: r.error }
             }
         ))
     }
 
-    const hasError = students.some(s => s.error === "Fail");
+    const hasError = students.some(
+        s => s.error && s.error.type === API_ERROR.NETWORK
+    );
 
 
 
@@ -246,7 +228,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                             time={time}
                             onToggle={() => handleBtn(student.id)}
                             onDelete={() => deleteStudent(student.id)}
-                            isLoading={isLoading}
+                            isLoading={student.isLoading}
                         />
                     )
                 })}
