@@ -1,4 +1,5 @@
 import { API_ERROR } from "./apiError";
+import { retryBatch } from "./retryBatch";
 
 export function useStudentAPI() {
 
@@ -64,29 +65,18 @@ export function useStudentAPI() {
         }
     }
 
-    const checkMany = async (targets, maxRetry = 2) => {
-        const remaining = targets;
-        let lastResults = [];
+    const checkMany = async (students) => {
+        const now = Date.now();
 
-        for (let i = 0; i < maxRetry; i++) {
-            const results = await runStudentPatch(
-                remaining, () => ({
+        return retryBatch({
+            targets: students,
+            maxRetry: 2,
+            requestFn: (student) =>
+                runFetch(student.id, {
                     checked: true,
-                    checkedAt: Date.now(),
+                    checkedAt: now,
                 })
-            );
-
-            lastResults = results;
-
-            const failedIds = results.filter(r => !r.ok).map(r => r.id);
-
-            if (failedIds.length === 0) {
-                return results;
-            }
-
-            remaining = remaining.filter(s => failedIds.includes(s.id));
-        }
-        return lastResults;
+        })
     }
 
     const toggleCheck = async (id, nextChecked, checkedAt) => {

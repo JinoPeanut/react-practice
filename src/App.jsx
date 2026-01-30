@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useEffect } from "react";
 import { useRef } from "react";
+import { ToastContainer } from "react-toastify"
 import StudentItem from "./StudentItem";
 import StudentList from "./StudentList";
 import TimeDisplay from "./TimeDisplay";
@@ -31,6 +32,7 @@ function App() {
         name={name}
         setName={setName}
       />
+      <ToastContainer />
     </div>
   )
 }

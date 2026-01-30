@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useMemo } from "react";
 import { useStudentAPI } from "./useStudentAPI";
 import { API_ERROR } from "./apiError";
+import { toast } from "react-toastify";
+
 
 function StudentList({ students, setStudents, filter, setFilter, name, setName }) {
 
@@ -71,6 +73,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                 : student
         ))
 
+        const checkedAt = nextChecked ? Date.now() : null;
         const result = await toggleCheck(id, nextChecked, checkedAt);
 
         if (result.ok) {
@@ -156,6 +159,21 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
 
         const results = await checkMany(targets, now);
 
+        const failed = results.filter(r => !r.ok);
+        const success = results.filter(r => r.ok);
+
+        const summary = {
+            total: results.length,
+            success: success.length,
+            failed: failed.length,
+        }
+
+        if (failed.length === 0) {
+            toast.success(`${summary.success} 명 출석 성공`);
+        } else {
+            toast.warning(`재시도: ${summary.failed}명 출석 실패`);
+        }
+
         const resultMap = new Map(results.map(r => [r.id, r]));
 
         setStudents(prev => prev.map(
@@ -185,6 +203,21 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
 
         const results = await checkMany(targets, now);
 
+        const failed = results.filter(r => !r.ok);
+        const success = results.filter(r => r.ok);
+
+        const summary = {
+            total: results.length,
+            success: success.length,
+            failed: failed.length,
+        }
+
+        if (failed.length === 0) {
+            toast.success(`${summary.success}명 출석 성공`);
+        } else {
+            toast.warning(`${summary.failed}명 출석 실패`);
+        }
+
         const resultMap = new Map(results.map(r => [r.id, r]));
 
         setStudents(prev => prev.map(
@@ -202,8 +235,6 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
     const hasError = students.some(
         s => s.error && s.error.type === API_ERROR.NETWORK
     );
-
-
 
     return (
         <div>
