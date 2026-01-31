@@ -1,3 +1,5 @@
+import { RETRYABLE_ERROR_TYPE } from "./constants/retryPolicy";
+
 
 export async function retryBatch({ targets, requestFn, maxRetry = 2 }) {
     let remaining = targets;
@@ -25,7 +27,9 @@ export async function retryBatch({ targets, requestFn, maxRetry = 2 }) {
 
         lastResults = results;
 
-        const failedIds = results.filter(r => !r.ok).map(r => r.id);
+        const failedIds = results
+            .filter(r => !r.ok && r.error && RETRYABLE_ERROR_TYPE.includes(r.error.type))
+            .map(r => r.id);
         if (failedIds.length === 0) return results;
 
         remaining = remaining.filter(t => failedIds.includes(t.id));

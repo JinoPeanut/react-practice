@@ -1,4 +1,4 @@
-import { API_ERROR } from "./apiError";
+import { API_ERROR } from "./constants/apiError";
 import { retryBatch } from "./retryBatch";
 
 export function useStudentAPI() {
@@ -29,7 +29,12 @@ export function useStudentAPI() {
                 return {
                     id: student.id,
                     ok: res.ok,
-                    error: res.error ?? null,
+                    errorType: res.ok
+                        ? null
+                        : res.error?.type ?? API_ERROR.UNKNOWN,
+                    errorMessage: res.ok
+                        ? null
+                        : res.error?.message ?? "출석 실패",
                 }
 
             })

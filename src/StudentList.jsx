@@ -2,7 +2,7 @@ import StudentItem from "./StudentItem";
 import { useState } from "react";
 import { useMemo } from "react";
 import { useStudentAPI } from "./useStudentAPI";
-import { API_ERROR } from "./apiError";
+import { API_ERROR } from "./constants/apiError";
 import { toast } from "react-toastify";
 
 
