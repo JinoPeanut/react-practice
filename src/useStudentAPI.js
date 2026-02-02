@@ -52,16 +52,21 @@ export function useStudentAPI() {
             if (!res.ok) {
                 return {
                     ok: false,
+                    status: "Retryable",
                     error: {
                         type: API_ERROR.NETWORK,
                         message: "요청 실패",
                     }
                 }
             }
-            return { ok: true };
+            return {
+                ok: true,
+                status: "Success",
+            };
         } catch {
             return {
                 ok: false,
+                status: "Failed",
                 error: {
                     type: API_ERROR.UNKNOWN,
                     message: "알 수 없는 오류",

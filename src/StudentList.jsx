@@ -4,6 +4,8 @@ import { useMemo } from "react";
 import { useStudentAPI } from "./useStudentAPI";
 import { API_ERROR } from "./constants/apiError";
 import { toast } from "react-toastify";
+import { RETRYABLE_ERROR_TYPE } from "./constants/retryPolicy";
+import { createAttendanceSummary } from "./util/attendanceSummary"
 
 
 function StudentList({ students, setStudents, filter, setFilter, name, setName }) {
@@ -39,7 +41,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
 
     const resetChecked = async () => {
         const result = await resetCheck(students);
-        const hasFail = result.some(r => !r.ok);
+        const hasFail = result.some(r => r.status === "Failed");
 
         if (hasFail) {
             alert("초기화 실패");
@@ -157,18 +159,13 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                 }
         ))
 
+        // useStudentAPI.js 호출
         const results = await checkMany(targets, now);
 
-        const failed = results.filter(r => !r.ok);
-        const success = results.filter(r => r.ok);
+        // attendanceSummary.js 호출
+        const summary = createAttendanceSummary(results);
 
-        const summary = {
-            total: results.length,
-            success: success.length,
-            failed: failed.length,
-        }
-
-        if (failed.length === 0) {
+        if (summary.failed === 0) {
             toast.success(`${summary.success} 명 출석 성공`);
         } else {
             toast.warning(`재시도: ${summary.failed}명 출석 실패`);
@@ -181,38 +178,33 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                 const r = resultMap.get(s.id);
                 if (!r) return s;
 
-                return r.ok
-                    ? { ...s, checked: true, checkedAt: now, isLoading: false }
+                return r.status === "Success"
+                    ? { ...s, checked: true, checkedAt: now, isLoading: false, status: "Success" }
                     : { ...s, checked: false, isLoading: false, error: r.error }
             }
         ))
     }
 
     const retryCheck = async () => {
-        const targets = students.filter(s => s.error?.type === API_ERROR.NETWORK);
+        const targets = students.filter(s => s.status === "Retryable");
 
         if (targets.length === 0) return;
 
         const now = Date.now();
 
         setStudents(prev => prev.map(
-            s => s.error?.type === API_ERROR.NETWORK
+            s => s.status === "Retryable"
                 ? { ...s, isLoading: true, error: null }
                 : s
         ));
 
+        // useStudentAPI.js 호출
         const results = await checkMany(targets, now);
 
-        const failed = results.filter(r => !r.ok);
-        const success = results.filter(r => r.ok);
+        // attendanceSummary.js 호출
+        const summary = createAttendanceSummary(results);
 
-        const summary = {
-            total: results.length,
-            success: success.length,
-            failed: failed.length,
-        }
-
-        if (failed.length === 0) {
+        if (summary.failed === 0) {
             toast.success(`${summary.success}명 출석 성공`);
         } else {
             toast.warning(`${summary.failed}명 출석 실패`);
@@ -225,16 +217,16 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                 const r = resultMap.get(s.id);
                 if (!r) return s;
 
-                return r.ok
-                    ? { ...s, checked: true, checkedAt: now, isLoading: false }
+                return r.status === "Success"
+                    ? { ...s, checked: true, checkedAt: now, isLoading: false, status: "Success" }
                     : { ...s, checked: false, isLoading: false, error: r.error }
             }
         ))
     }
 
-    const hasError = students.some(
-        s => s.error && s.error.type === API_ERROR.NETWORK
-    );
+    const hasRetryableError = students.some(
+        s => s.status === "Retryable"
+    )
 
     return (
         <div>
@@ -282,7 +274,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                 <button onClick={addStudent}>[추가]</button>
             </div>
             <div>
-                {hasError
+                {hasRetryableError
                     ? <button onClick={retryCheck}>[실패한 출석 다시시도]</button>
                     : <button onClick={allCheck}>[전체 출석]</button>
                 }
