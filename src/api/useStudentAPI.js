@@ -1,5 +1,6 @@
-import { API_ERROR } from "./constants/apiError";
-import { retryBatch } from "./retryBatch";
+import { API_ERROR } from "../constants/apiError";
+import { retryBatch } from "../retryBatch";
+import { normalizeAttendanceResult } from "../util/normalizeAttendanceResult";
 
 export function useStudentAPI() {
 
@@ -50,28 +51,17 @@ export function useStudentAPI() {
             });
 
             if (!res.ok) {
-                return {
+                return normalizeAttendanceResult({
                     ok: false,
-                    status: "Retryable",
-                    error: {
-                        type: API_ERROR.NETWORK,
-                        message: "요청 실패",
-                    }
-                }
+                    error: { type: "NETWORK" }
+                })
             }
-            return {
-                ok: true,
-                status: "Success",
-            };
+            return normalizeAttendanceResult({ ok: true });
         } catch {
-            return {
+            return normalizeAttendanceResult({
                 ok: false,
-                status: "Failed",
-                error: {
-                    type: API_ERROR.UNKNOWN,
-                    message: "알 수 없는 오류",
-                }
-            }
+                error: { type: "UNKNOWN" }
+            });
         }
     }
 

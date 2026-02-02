@@ -1,11 +1,12 @@
 import StudentItem from "./StudentItem";
 import { useState } from "react";
 import { useMemo } from "react";
-import { useStudentAPI } from "./useStudentAPI";
-import { API_ERROR } from "./constants/apiError";
+import { useStudentAPI } from "../api/useStudentAPI";
+import { API_ERROR } from "../constants/apiError";
 import { toast } from "react-toastify";
-import { RETRYABLE_ERROR_TYPE } from "./constants/retryPolicy";
-import { createAttendanceSummary } from "./util/attendanceSummary"
+import { RETRYABLE_ERROR_TYPE } from "../constants/retryPolicy";
+import { createAttendanceSummary } from "../util/attendanceSummary"
+import { isSuccess, isFailed, isRetryable } from "../util/attendanceStatus"
 
 
 function StudentList({ students, setStudents, filter, setFilter, name, setName }) {
@@ -41,7 +42,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
 
     const resetChecked = async () => {
         const result = await resetCheck(students);
-        const hasFail = result.some(r => r.status === "Failed");
+        const hasFail = result.some(r => isFailed(r));
 
         if (hasFail) {
             alert("초기화 실패");
@@ -178,22 +179,27 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                 const r = resultMap.get(s.id);
                 if (!r) return s;
 
-                return r.status === "Success"
-                    ? { ...s, checked: true, checkedAt: now, isLoading: false, status: "Success" }
-                    : { ...s, checked: false, isLoading: false, error: r.error }
+                return {
+                    ...s,
+                    checked: isSuccess(r),
+                    checkedAt: isSuccess(r) ? now : null,
+                    isLoading: false,
+                    status: r.status,
+                    error: r.error ?? null,
+                }
             }
         ))
     }
 
     const retryCheck = async () => {
-        const targets = students.filter(s => s.status === "Retryable");
+        const targets = students.filter(s => isRetryable(s));
 
         if (targets.length === 0) return;
 
         const now = Date.now();
 
         setStudents(prev => prev.map(
-            s => s.status === "Retryable"
+            s => isRetryable(s)
                 ? { ...s, isLoading: true, error: null }
                 : s
         ));
@@ -217,16 +223,21 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                 const r = resultMap.get(s.id);
                 if (!r) return s;
 
-                return r.status === "Success"
-                    ? { ...s, checked: true, checkedAt: now, isLoading: false, status: "Success" }
-                    : { ...s, checked: false, isLoading: false, error: r.error }
+                return {
+                    ...s,
+                    checked: isSuccess(r),
+                    checkedAt: isSuccess(r) ? now : null,
+                    isLoading: false,
+                    status: r.status,
+                    error: r.error ?? null,
+                }
             }
         ))
     }
 
     const hasRetryableError = students.some(
-        s => s.status === "Retryable"
-    )
+        s => isRetryable(s)
+    );
 
     return (
         <div>
