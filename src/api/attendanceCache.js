@@ -1,0 +1,1 @@
+export const attendanceCache = new Map();

@@ -79,7 +79,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
         const checkedAt = nextChecked ? Date.now() : null;
         const result = await toggleCheck(id, nextChecked, checkedAt);
 
-        if (result.ok) {
+        if (isSuccess(result)) {
             setStudents(prev => prev.map(
                 s => s.id === id
                     ? { ...s, isLoading: false }

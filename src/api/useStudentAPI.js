@@ -1,6 +1,10 @@
 import { API_ERROR } from "../constants/apiError";
 import { retryBatch } from "../retryBatch";
 import { normalizeAttendanceResult } from "../util/normalizeAttendanceResult";
+import { attendanceCache } from "./attendanceCache";
+import { shouldCache } from "../util/attendanceCachePolicy";
+import { CACHE_TTL } from "../util/cacheTtl";
+import { cache } from "react";
 
 export function useStudentAPI() {
 
@@ -43,6 +47,20 @@ export function useStudentAPI() {
     }
 
     async function runFetch(id, body) {
+        const cacheKey = `${id}_${body.checkedAt ?? "reset"}`;
+
+        if (attendanceCache.has(cacheKey)) {
+            const cached = attendanceCache.get(cacheKey);
+
+            const isExpired = Date.now() - cached.cachedAt > CACHE_TTL;
+
+            if (!isExpired) return cached.result;
+
+            attendanceCache.delete(cacheKey);
+        }
+
+        let result;
+
         try {
             const res = await fetch(`http://localhost:3001/students/${id}`, {
                 method: "PATCH",
@@ -51,18 +69,28 @@ export function useStudentAPI() {
             });
 
             if (!res.ok) {
-                return normalizeAttendanceResult({
+                result = normalizeAttendanceResult({
                     ok: false,
                     error: { type: "NETWORK" }
                 })
+            } else {
+                result = normalizeAttendanceResult({ ok: true });
             }
-            return normalizeAttendanceResult({ ok: true });
         } catch {
-            return normalizeAttendanceResult({
+            result = normalizeAttendanceResult({
                 ok: false,
                 error: { type: "UNKNOWN" }
             });
         }
+
+        if (shouldCache(result)) {
+            attendanceCache.set(cacheKey, {
+                result,
+                cachedAt: Date.now(),
+            });
+        }
+
+        return result;
     }
 
     const checkMany = async (students) => {
