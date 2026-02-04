@@ -1,4 +1,4 @@
-import { RETRYABLE_ERROR_TYPE } from "./constants/retryPolicy";
+import { RETRYABLE_ERROR_TYPE } from "../constants/retryPolicy";
 
 
 export async function retryBatch({ targets, requestFn, maxRetry = 2 }) {

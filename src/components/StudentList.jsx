@@ -1,7 +1,7 @@
 import StudentItem from "./StudentItem";
 import { useState } from "react";
 import { useMemo } from "react";
-import { useStudentAPI } from "../api/useStudentAPI";
+import { studentAPI } from "../api/studentAPI";
 import { API_ERROR } from "../constants/apiError";
 import { toast } from "react-toastify";
 import { RETRYABLE_ERROR_TYPE } from "../constants/retryPolicy";
@@ -11,7 +11,7 @@ import { isSuccess, isFailed, isRetryable } from "../util/attendanceStatus"
 
 function StudentList({ students, setStudents, filter, setFilter, name, setName }) {
 
-    const { checkMany, toggleCheck, resetCheck, handleApiError } = useStudentAPI();
+    const { checkMany, toggleCheck, resetCheck, handleApiError } = studentAPI();
 
     const sortStudent = [...students].sort((a, b) => {
         if (a.checked === b.checked) {
