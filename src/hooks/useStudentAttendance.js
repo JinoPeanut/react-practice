@@ -1,20 +1,55 @@
-import { studentAPI } from "../api/studentAPI";
-import { API_ERROR } from "../constants/apiError";
+import { useEffect, useState } from "react";
 
 export function useStudentAttendance() {
-    const handleApiError = (error) => {
-        switch (error?.type) {
-            case API_ERROR.NETWORK:
-                return "네트워크 오류가 발생했습니다";
-            case API_ERROR.TIMEOUT:
-                return "시간 초과";
-            default:
-                return "출석 실패";
+
+    const [status, setStatus] = useState("idle");
+    const [errorMessage, setErrorMessage] = useState(null);
+
+    const STATUS = {
+        IDLE: "idle",
+        LOADING: "loading",
+        SUCCESS: "success",
+        ERROR: "error",
+    };
+
+    const toggleCheck = async () => {
+        setStatus(STATUS.LOADING);
+        setErrorMessage(null);
+
+        try {
+            await fakeToggleAttendance();
+            setStatus(STATUS.SUCCESS);
+        } catch (e) {
+            setStatus(STATUS.ERROR);
+            setErrorMessage(e.message);
         }
-    }
+    };
+
+    useEffect(() => {
+        if (status !== STATUS.SUCCESS) return;
+
+        const timeout = setTimeout(() => {
+            setStatus(STATUS.IDLE);
+        }, 2000)
+
+        return () => clearTimeout(timeout);
+
+    }, [status])
+
+    useEffect(() => {
+        if (status !== STATUS.ERROR) return;
+
+        const timeout = setTimeout(() => {
+            setStatus(STATUS.IDLE);
+            setErrorMessage(null);
+        }, 3000)
+
+        return () => clearTimeout(timeout);
+    }, [status])
 
     return {
-        ...studentAPI,
-        handleApiError,
+        status,
+        errorMessage,
+        toggleCheck,
     }
 }

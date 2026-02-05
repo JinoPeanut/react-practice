@@ -1,20 +1,28 @@
 import { useStudentAttendance } from "../hooks/useStudentAttendance";
 
 function AttendanceButton() {
-    const { toggleCheck, handleApiError } = useStudentAttendance();
-
-    const handleClick = async () => {
-        const result = await toggleCheck(1, true, Date.now());
-
-        if (!result.ok) {
-            alert(handleApiError(result.errorType));
-        }
-    }
+    const { status, errorMessage, toggleCheck } = useStudentAttendance();
 
     return (
         <div>
-            <button onClick={toggleCheck}>[출석 토글]</button>
-        </div>
+            <button
+                onClick={toggleCheck}
+                disabled={status === "loading"}
+            >
+                {status === "loading" ? "처리중..." : "출석 토글"}
+            </button>
+
+            {status === "success" && <p style={{ color: "green" }}>출석 성공!</p>}
+
+            {
+                status === "error" && (
+                    <>
+                        <p style={{ color: "red" }}>{errorMessage}</p>
+                        <button onClick={toggleCheck}>다시 시도</button>
+                    </>
+                )
+            }
+        </div >
     )
 }
 
