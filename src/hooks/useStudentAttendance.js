@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 
 export function useStudentAttendance() {
 
-    const [status, setStatus] = useState("idle");
-    const [errorMessage, setErrorMessage] = useState(null);
+    const initialState = {
+        status: "idle",
+        errorMessage: null,
+    }
+
+    const [state, dispatch] = useReducer(reducer, initialState);
 
     const STATUS = {
         IDLE: "idle",
@@ -12,44 +16,70 @@ export function useStudentAttendance() {
         ERROR: "error",
     };
 
+    const statusIdle = () => state.status === STATUS.IDLE;
+    const statusSuccess = () => state.status === STATUS.SUCCESS;
+    const statusLoading = () => state.status === STATUS.LOADING;
+    const statusError = () => state.status === STATUS.ERROR;
+
     const toggleCheck = async () => {
-        setStatus(STATUS.LOADING);
-        setErrorMessage(null);
+        if (statusLoading()) return;
+
+        dispatch({ type: "LOADING" });
 
         try {
             await fakeToggleAttendance();
-            setStatus(STATUS.SUCCESS);
+            dispatch({ type: "SUCCESS" });
         } catch (e) {
-            setStatus(STATUS.ERROR);
-            setErrorMessage(e.message);
+            dispatch({
+                type: "ERROR",
+                message: "출석 실패",
+            })
         }
     };
 
     useEffect(() => {
-        if (status !== STATUS.SUCCESS) return;
+        let timeout;
 
-        const timeout = setTimeout(() => {
-            setStatus(STATUS.IDLE);
-        }, 2000)
+        if (statusSuccess()) {
+            timeout = setTimeout(() => {
+                dispatch({ type: "RESET" });
+            }, 2000)
+        }
 
-        return () => clearTimeout(timeout);
+        if (statusError()) {
+            timeout = setTimeout(() => {
+                dispatch({ type: "RESET" });
+            }, 3000)
+        }
 
-    }, [status])
+        return () => {
+            if (timeout) clearTimeout(timeout);
+        }
 
-    useEffect(() => {
-        if (status !== STATUS.ERROR) return;
-
-        const timeout = setTimeout(() => {
-            setStatus(STATUS.IDLE);
-            setErrorMessage(null);
-        }, 3000)
-
-        return () => clearTimeout(timeout);
-    }, [status])
+    }, [state])
 
     return {
-        status,
-        errorMessage,
+        status: state.status,
+        errorMessage: state.errorMessage,
         toggleCheck,
+    }
+}
+
+function reducer(state, action) {
+    switch (action.type) {
+        case "LOADING":
+            return { status: "loading", errorMessage: null };
+
+        case "SUCCESS":
+            return { status: "success", errorMessage: null };
+
+        case "ERROR":
+            return { status: "error", errorMessage: action.message };
+
+        case "RESET":
+            return { status: "idle", errorMessage: null };
+
+        default:
+            return state;
     }
 }
