@@ -1,7 +1,7 @@
 import { useStudentAttendance } from "../hooks/useStudentAttendance";
 
 function AttendanceButton() {
-    const { status, errorMessage, toggleCheck } = useStudentAttendance();
+    const { status, errorMessage, lastUpdatedAt, toggleCheck } = useStudentAttendance();
 
     return (
         <div>
@@ -22,6 +22,12 @@ function AttendanceButton() {
                     </>
                 )
             }
+
+            <div>
+                {lastUpdatedAt &&
+                    (<p>마지막 처리 시간: {new Date(lastUpdatedAt).toLocaleTimeString()}</p>)
+                }
+            </div>
         </div >
     )
 }

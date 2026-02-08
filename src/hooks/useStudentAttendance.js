@@ -1,13 +1,15 @@
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useState, useRef } from "react";
 
 export function useStudentAttendance() {
 
     const initialState = {
         status: "idle",
         errorMessage: null,
+        lastUpdatedAt: null,
     }
 
     const [state, dispatch] = useReducer(reducer, initialState);
+    const requestIdRef = useRef(0);
 
     const STATUS = {
         IDLE: "idle",
@@ -24,12 +26,20 @@ export function useStudentAttendance() {
     const toggleCheck = async () => {
         if (statusLoading()) return;
 
+        const request = ++requestIdRef.current;
+
         dispatch({ type: "LOADING" });
 
         try {
             await fakeToggleAttendance();
+
+            if (request !== requestIdRef.current) return;
+
             dispatch({ type: "SUCCESS" });
+
         } catch (e) {
+            if (request !== requestIdRef.current) return;
+
             dispatch({
                 type: "ERROR",
                 message: "출석 실패",
@@ -56,30 +66,51 @@ export function useStudentAttendance() {
             if (timeout) clearTimeout(timeout);
         }
 
-    }, [state])
+    }, [state.status])
 
     return {
         status: state.status,
         errorMessage: state.errorMessage,
+        lastUpdatedAt: state.lastUpdatedAt,
         toggleCheck,
     }
 }
 
 function reducer(state, action) {
-    switch (action.type) {
-        case "LOADING":
-            return { status: "loading", errorMessage: null };
+    const handler = reducers[action.type];
+    return handler ? handler(state, action) : state;
+}
 
-        case "SUCCESS":
-            return { status: "success", errorMessage: null };
+const reducers = {
+    LOADING: (state) => ({
+        ...state,
+        status: "loading",
+        errorMessage: null,
+        // 로딩상태일때 굳이 lastUpdatedAt 을 바꿀필요 없어서 안적음
+    }),
 
-        case "ERROR":
-            return { status: "error", errorMessage: action.message };
+    SUCCESS: (state) => {
+        if (state.status !== "loading") return state;
+        return {
+            status: "success",
+            errorMessage: null,
+            lastUpdatedAt: Date.now(),
+        }
+    },
 
-        case "RESET":
-            return { status: "idle", errorMessage: null };
+    ERROR: (state, action) => {
+        if (state.status !== "loading") return state;
+        return {
+            status: "error",
+            errorMessage: action.message,
+            lastUpdatedAt: Date.now(),
+        }
+    },
 
-        default:
-            return state;
-    }
+    RESET: (state) => ({
+        status: "idle",
+        errorMessage: null,
+        lastUpdatedAt: state.lastUpdatedAt
+        // 리셋해도 시간을 초기화할 필요없으니 있는값 그대로 전달
+    })
 }
