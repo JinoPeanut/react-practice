@@ -9,7 +9,8 @@ export function useStudentAttendance() {
     }
 
     const [state, dispatch] = useReducer(reducer, initialState);
-    const requestIdRef = useRef(0);
+
+    const abortRef = useRef(null);
 
     const STATUS = {
         IDLE: "idle",
@@ -26,20 +27,20 @@ export function useStudentAttendance() {
     const toggleCheck = async () => {
         if (statusLoading()) return;
 
-        const request = ++requestIdRef.current;
+        abortRef.current?.abort();
+
+        const controller = new AbortController();
+        abortRef.current = controller;
+
 
         dispatch({ type: "LOADING" });
 
         try {
-            await fakeToggleAttendance();
-
-            if (request !== requestIdRef.current) return;
+            await fakeToggleAttendance({ signal: controller.signal });
 
             dispatch({ type: "SUCCESS" });
 
         } catch (e) {
-            if (request !== requestIdRef.current) return;
-
             dispatch({
                 type: "ERROR",
                 message: "출석 실패",
@@ -64,6 +65,7 @@ export function useStudentAttendance() {
 
         return () => {
             if (timeout) clearTimeout(timeout);
+            abortRef.current?.abort();
         }
 
     }, [state.status])
