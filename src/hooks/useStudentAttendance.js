@@ -4,6 +4,7 @@ export function useStudentAttendance() {
 
     const initialState = {
         status: "idle",
+        requestId: 0,
         errorMessage: null,
         lastUpdatedAt: null,
     }
@@ -25,28 +26,20 @@ export function useStudentAttendance() {
     const statusError = () => state.status === STATUS.ERROR;
 
     const toggleCheck = async () => {
-        if (statusLoading()) return;
+        dispatch({ type: "TOGGLE_REQUESTED" });
+    };
 
-        abortRef.current?.abort();
+    useEffect(() => {
+        if (!statusLoading()) return;
 
         const controller = new AbortController();
-        abortRef.current = controller;
 
+        fakeToggleAttendance({ signal: controller.signal })
+            .then(() => dispatch({ type: "SUCCESS" }))
+            .catch(() => dispatch({ type: "ERROR", message: "출석 실패" }))
 
-        dispatch({ type: "LOADING" });
-
-        try {
-            await fakeToggleAttendance({ signal: controller.signal });
-
-            dispatch({ type: "SUCCESS" });
-
-        } catch (e) {
-            dispatch({
-                type: "ERROR",
-                message: "출석 실패",
-            })
-        }
-    };
+        return () => controller.abort();
+    }, [state.status])
 
     useEffect(() => {
         let timeout;
@@ -65,7 +58,6 @@ export function useStudentAttendance() {
 
         return () => {
             if (timeout) clearTimeout(timeout);
-            abortRef.current?.abort();
         }
 
     }, [state.status])
@@ -84,12 +76,16 @@ function reducer(state, action) {
 }
 
 const reducers = {
-    LOADING: (state) => ({
-        ...state,
-        status: "loading",
-        errorMessage: null,
-        // 로딩상태일때 굳이 lastUpdatedAt 을 바꿀필요 없어서 안적음
-    }),
+    TOGGLE_REQUESTED: (state) => {
+        if (state.status === "loading") return state;
+        if (state.lastUpdatedAt && Date.now() - state.lastUpdatedAt < 5000) return state;
+        return {
+            ...state,
+            status: "loading",
+            requestId: state.requestId + 1,
+            errorMessage: null,
+        }
+    },
 
     SUCCESS: (state) => {
         if (state.status !== "loading") return state;
