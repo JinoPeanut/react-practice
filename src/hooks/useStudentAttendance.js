@@ -1,10 +1,12 @@
 import { useEffect, useReducer, useState, useRef } from "react";
+import { fakeToggleAttendance } from "../api/fakeAttendance";
 
 export function useStudentAttendance() {
 
     const initialState = {
         status: "idle",
         requestId: 0,
+        currentRequestId: null,
         errorMessage: null,
         lastUpdatedAt: null,
     }
@@ -30,13 +32,27 @@ export function useStudentAttendance() {
     };
 
     useEffect(() => {
-        if (!statusLoading()) return;
+        if (state.status !== "loading") return;
 
         const controller = new AbortController();
+        const currentRequestId = state.currentRequestId;
 
         fakeToggleAttendance({ signal: controller.signal })
-            .then(() => dispatch({ type: "SUCCESS" }))
-            .catch(() => dispatch({ type: "ERROR", message: "출석 실패" }))
+            .then(() => {
+                if (currentRequestId !== state.requestId) return;
+                dispatch({
+                    type: "SUCCESS",
+                    requestId: currentRequestId,
+                })
+            })
+            .catch((error) => {
+                if (error.name === "AbortError") return;
+                dispatch({
+                    type: "ERROR",
+                    message: "출석 실패",
+                    requestId: currentRequestId,
+                })
+            })
 
         return () => controller.abort();
     }, [state.status])
@@ -79,15 +95,19 @@ const reducers = {
     TOGGLE_REQUESTED: (state) => {
         if (state.status === "loading") return state;
         if (state.lastUpdatedAt && Date.now() - state.lastUpdatedAt < 5000) return state;
+
+        const nextId = state.requestId + 1;
         return {
             ...state,
             status: "loading",
-            requestId: state.requestId + 1,
+            requestId: nextId,
+            currentRequestId: nextId,
             errorMessage: null,
         }
     },
 
-    SUCCESS: (state) => {
+    SUCCESS: (state, action) => {
+        if (action.requestId !== state.currentRequestId) return state;
         if (state.status !== "loading") return state;
         return {
             status: "success",
@@ -97,6 +117,7 @@ const reducers = {
     },
 
     ERROR: (state, action) => {
+        if (action.requestId !== state.currentRequestId) return state;
         if (state.status !== "loading") return state;
         return {
             status: "error",
