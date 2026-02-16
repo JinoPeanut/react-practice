@@ -1,27 +1,61 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
+import { studentAPI } from "../api/studentAPI";
 
 // 1️⃣ Context 통 만들기
 const AttendanceContext = createContext(null);
 
 // 2️⃣ Provider 만들기
 export function AttendanceProvider({ children }) {
-    const [students, setStudents] = useState([
-        { id: 1, name: "철수", isPresent: false },
-        { id: 2, name: "영희", isPresent: true },
-    ]);
+    const [students, setStudents] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    const toggleStudent = (id) => {
-        setStudents((prev) =>
-            prev.map((student) =>
-                student.id === id
-                    ? { ...student, isPresent: !student.isPresent }
-                    : student
-            )
-        );
+    const fetchStudents = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const data = await studentAPI.getStudents();
+            setStudents(data);
+        } catch (err) {
+            setError(err);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const toggleStudent = async (student) => {
+        try {
+            setError(null);
+
+            const result = await studentAPI.toggleCheck(
+                student.id,
+                !student.checked,
+                Date.now(),
+            );
+
+            if (!result.ok) {
+                throw new Error("출석 토글 실패");
+            }
+
+            await fetchStudents();
+        } catch (err) {
+            setError(err);
+        }
     };
 
+    useEffect(() => {
+        fetchStudents();
+    }, [])
+
     return (
-        <AttendanceContext.Provider value={{ students, toggleStudent }}>
+        <AttendanceContext.Provider value={{
+            students,
+            loading,
+            error,
+            fetchStudents,
+            toggleStudent,
+        }}>
             {children}
         </AttendanceContext.Provider>
     );

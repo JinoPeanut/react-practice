@@ -104,7 +104,23 @@ const resetCheck = async (targets) => {
     }))
 }
 
+const getStudents = async () => {
+    try {
+        const res = await fetch("http://localhost:3001/students");
+
+        if (!res.ok) {
+            throw new Error("학생 목록 조회 실패");
+        }
+
+        return await res.json();
+    } catch (error) {
+        throw error;
+    }
+};
+
+
 export const studentAPI = {
+    getStudents,
     checkMany,
     toggleCheck,
     resetCheck,
