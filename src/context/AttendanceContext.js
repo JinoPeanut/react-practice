@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useRef } from "react";
 import { studentAPI } from "../api/studentAPI";
 
 // 1️⃣ Context 통 만들기
@@ -9,22 +9,36 @@ export function AttendanceProvider({ children }) {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const requestIdRef = useRef(0);
 
     const fetchStudents = async () => {
+        const request = ++requestIdRef.current;
         try {
             setLoading(true);
             setError(null);
 
             const data = await studentAPI.getStudents();
+
+            if (request !== requestIdRef.current) return;
             setStudents(data);
         } catch (err) {
+            if (request !== requestIdRef.current) return;
             setError(err);
         } finally {
+            if (request !== requestIdRef.current) return;
             setLoading(false);
         }
     }
 
     const toggleStudent = async (student) => {
+        const prevStudent = students;
+
+        setStudents(prev => prev.map(
+            s => s.id === student.id
+                ? { ...s, checked: !s.checked }
+                : s
+        ))
+
         try {
             setError(null);
 
@@ -38,9 +52,10 @@ export function AttendanceProvider({ children }) {
                 throw new Error("출석 토글 실패");
             }
 
-            await fetchStudents();
+            fetchStudents();
         } catch (err) {
             setError(err);
+            setStudents(prevStudent);
         }
     };
 
