@@ -10,6 +10,7 @@ export function AttendanceProvider({ children }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const requestIdRef = useRef(0);
+    const abortRef = useRef({});
 
     const fetchStudents = async () => {
         const request = ++requestIdRef.current;
@@ -21,9 +22,11 @@ export function AttendanceProvider({ children }) {
 
             if (request !== requestIdRef.current) return;
             setStudents(data);
+
         } catch (err) {
             if (request !== requestIdRef.current) return;
             setError(err);
+
         } finally {
             if (request !== requestIdRef.current) return;
             setLoading(false);
@@ -31,13 +34,21 @@ export function AttendanceProvider({ children }) {
     }
 
     const toggleStudent = async (student) => {
-        const prevStudent = students;
+        const prevStudent = [...students];
+
 
         setStudents(prev => prev.map(
             s => s.id === student.id
                 ? { ...s, checked: !s.checked }
                 : s
         ))
+
+        if (abortRef.current[student.id]) {
+            abortRef.current[student.id].abort();
+        }
+
+        const controller = new AbortController();
+        abortRef.current[student.id] = controller;
 
         try {
             setError(null);
@@ -46,6 +57,7 @@ export function AttendanceProvider({ children }) {
                 student.id,
                 !student.checked,
                 Date.now(),
+                { signal: controller.signal },
             );
 
             if (!result.ok) {
@@ -53,11 +65,15 @@ export function AttendanceProvider({ children }) {
             }
 
             fetchStudents();
+
         } catch (err) {
+            if (err.name === "AbortError") return;
             setError(err);
             setStudents(prevStudent);
+        } finally {
+            delete abortRef.current[student.id];
         }
-    };
+    }
 
     useEffect(() => {
         fetchStudents();
@@ -74,7 +90,7 @@ export function AttendanceProvider({ children }) {
             {children}
         </AttendanceContext.Provider>
     );
-}
+};
 
 // 3️⃣ useContext를 감싼 커스텀 훅
 export function useAttendance() {

@@ -46,7 +46,8 @@ async function runFetch(id, body) {
         const res = await fetch(`http://localhost:3001/students/${id}`, {
             method: "PATCH",
             headers: { "Content-type": "application/json" },
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            signal: options.signal,
         });
 
         if (!res.ok) {
@@ -88,12 +89,12 @@ const checkMany = async (students) => {
     })
 }
 
-const toggleCheck = async (id, nextChecked, checkedAt) => {
+const toggleCheck = async (id, nextChecked, checkedAt, options = {}) => {
     return retryFetch(() =>
         runFetch(id, {
             checked: nextChecked,
             checkedAt,
-        })
+        }, options)
     )
 }
 
@@ -106,7 +107,7 @@ const resetCheck = async (targets) => {
 
 const getStudents = async () => {
     try {
-        const res = await fetch("http://localhost:3001/students");
+        const res = await fetch("http://localhost:3001/students", { signal: signal.controller });
 
         if (!res.ok) {
             throw new Error("학생 목록 조회 실패");
