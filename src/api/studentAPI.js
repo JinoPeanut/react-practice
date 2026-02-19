@@ -27,7 +27,7 @@ async function runStudentPatch(targets, bodyBuilder) {
     );
 }
 
-async function runFetch(id, body) {
+async function runFetch(id, body, options = {}) {
     const cacheKey = `${id}_${body.checkedAt ?? "reset"}`;
 
     if (attendanceCache.has(cacheKey)) {
@@ -107,7 +107,7 @@ const resetCheck = async (targets) => {
 
 const getStudents = async () => {
     try {
-        const res = await fetch("http://localhost:3001/students", { signal: signal.controller });
+        const res = await fetch("http://localhost:3001/students");
 
         if (!res.ok) {
             throw new Error("학생 목록 조회 실패");

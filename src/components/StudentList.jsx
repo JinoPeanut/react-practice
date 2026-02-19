@@ -1,17 +1,15 @@
+import { useEffect } from "react";
 import StudentItem from "./StudentItem";
-import { useState } from "react";
-import { useMemo } from "react";
 import { studentAPI } from "../api/studentAPI";
-import { API_ERROR } from "../constants/apiError";
 import { toast } from "react-toastify";
-import { RETRYABLE_ERROR_TYPE } from "../constants/retryPolicy";
 import { createAttendanceSummary } from "../util/attendanceSummary"
 import { isSuccess, isFailed, isRetryable } from "../util/attendanceStatus"
+import StudentStats from "./StudentStats";
 
 
 function StudentList({ students, setStudents, filter, setFilter, name, setName }) {
 
-    const { checkMany, toggleCheck, resetCheck, handleApiError } = studentAPI();
+    const { checkMany, toggleCheck, resetCheck } = studentAPI;
 
     const sortStudent = [...students].sort((a, b) => {
         if (a.checked === b.checked) {
@@ -19,20 +17,6 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
         }
         return b.checked - a.checked;
     })
-
-    const stats = useMemo(() => {
-        const total = students.length;
-        const completed = students.filter(s => s.checked).length;
-        const unCompleted = students.filter(s => !s.checked).length;
-        const percent = (total === 0) ? 0 : Math.floor((completed / total) * 100);
-
-        return {
-            total,
-            completed,
-            unCompleted,
-            percent,
-        }
-    }, [students])
 
     const filterStudent = sortStudent.filter(s => {
         if (filter === "All") return true;
@@ -86,7 +70,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                     : s
             ))
         } else {
-            alert(handleApiError(result.error));
+            alert("출석 처리 실패");
             setStudents(prevStudent);
         }
     }
@@ -161,7 +145,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
         ))
 
         // useStudentAPI.js 호출
-        const results = await checkMany(targets, now);
+        const results = await checkMany(targets);
 
         // attendanceSummary.js 호출
         const summary = createAttendanceSummary(results);
@@ -205,7 +189,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
         ));
 
         // useStudentAPI.js 호출
-        const results = await checkMany(targets, now);
+        const results = await checkMany(targets);
 
         // attendanceSummary.js 호출
         const summary = createAttendanceSummary(results);
@@ -238,6 +222,13 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
     const hasRetryableError = students.some(
         s => isRetryable(s)
     );
+
+    useEffect(() => {
+        fetch("http://localhost:3001/students")
+            .then(res => res.json())
+            .then(data => setStudents(data));
+    }, [setStudents]);
+
 
     return (
         <div>
@@ -272,10 +263,11 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                 <button onClick={resetChecked}>[전체 출석 초기화]</button>
             </div>
 
-            <p>전체인원: {stats.total}명</p>
-            <p>출석완료: {stats.completed}명</p>
-            <p>미출석: {stats.unCompleted}명</p>
-            <p>출석률: {stats.percent}%</p>
+            <div>
+                <StudentStats
+                    students={students}
+                />
+            </div>
 
             <div>
                 <input
