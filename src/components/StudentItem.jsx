@@ -1,9 +1,9 @@
-import StudentList from "./StudentList"
-import { useState } from "react";
-function StudentItem({ student, onToggle, time, onDelete, isLoading }) {
+import "../App.css";
+
+function StudentItem({ student, onToggle, time, onDelete }) {
 
     return (
-        <div>
+        <div className={`student-item ${student.checked ? "checked" : ""}`}>
             {student.checked && "✅"}
             {student.name} {time && `(출석 : ${time})`}
             <button onClick={onToggle} disabled={student.isLoading}>

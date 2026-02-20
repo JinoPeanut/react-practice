@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { ToastContainer } from "react-toastify"
-import StudentList from "./StudentList";
-import TimeDisplay from "./TimeDisplay";
+import StudentList from "./components/StudentList";
+import TimeDisplay from "./components/TimeDisplay";
+import "./App.css"
 
 function App() {
 
@@ -10,19 +11,21 @@ function App() {
   const [name, setName] = useState("");
 
   return (
-    <div>
-      <TimeDisplay />
+    <div className="min-h-screen bg-gray-100 flex justify-center items-start py-10">
+      <div className="w-full max-w-4xl bg-white shadow-xl rounded-2xl p-8">
+        <TimeDisplay />
 
-      <StudentList
-        students={students}
-        setStudents={setStudents}
-        filter={filter}
-        setFilter={setFilter}
-        name={name}
-        setName={setName}
-      />
+        <StudentList
+          students={students}
+          setStudents={setStudents}
+          filter={filter}
+          setFilter={setFilter}
+          name={name}
+          setName={setName}
+        />
 
-      <ToastContainer />
+        <ToastContainer />
+      </div>
     </div>
   )
 }

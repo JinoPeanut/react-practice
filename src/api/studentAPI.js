@@ -1,9 +1,9 @@
 import { API_ERROR } from "../constants/apiError";
 import { retryBatch } from "./retryBatch";
-import { normalizeAttendanceResult } from "../util/normalizeAttendanceResult";
+import { normalizeAttendanceResult } from "../utils/normalizeAttendanceResult";
 import { attendanceCache } from "./attendanceCache";
-import { shouldCache } from "../util/attendanceCachePolicy";
-import { CACHE_TTL } from "../util/cacheTtl";
+import { shouldCache } from "../utils/attendanceCachePolicy";
+import { CACHE_TTL } from "../utils/cacheTtl";
 import { retryFetch } from "./retryFetch";
 
 

@@ -2,9 +2,10 @@ import { useEffect } from "react";
 import StudentItem from "./StudentItem";
 import { studentAPI } from "../api/studentAPI";
 import { toast } from "react-toastify";
-import { createAttendanceSummary } from "../util/attendanceSummary"
-import { isSuccess, isFailed, isRetryable } from "../util/attendanceStatus"
+import { createAttendanceSummary } from "../utils/attendanceSummary"
+import { isSuccess, isFailed, isRetryable } from "../utils/attendanceStatus"
 import StudentStats from "./StudentStats";
+import "../App.css";
 
 
 function StudentList({ students, setStudents, filter, setFilter, name, setName }) {
@@ -233,9 +234,9 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
     return (
         <div>
             <div>
-                <button onClick={() => setFilter("All")}>[전체]</button>
-                <button onClick={() => setFilter("Done")}>[출석]</button>
-                <button onClick={() => setFilter("Todo")}>[미출석]</button>
+                <button className="btn" onClick={() => setFilter("All")}>[전체]</button>
+                <button className="btn" onClick={() => setFilter("Done")}>[출석]</button>
+                <button className="btn" onClick={() => setFilter("Todo")}>[미출석]</button>
             </div>
             <ul>
                 {filterStudent.map(student => {
@@ -260,7 +261,7 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
             </ul>
 
             <div>
-                <button onClick={resetChecked}>[전체 출석 초기화]</button>
+                <button className="btn btn-danger" onClick={resetChecked}>[전체 출석 초기화]</button>
             </div>
 
             <div>
@@ -274,12 +275,12 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                 />
-                <button onClick={addStudent}>[추가]</button>
+                <button className="btn" onClick={addStudent}>[추가]</button>
             </div>
             <div>
                 {hasRetryableError
-                    ? <button onClick={retryCheck}>[실패한 출석 다시시도]</button>
-                    : <button onClick={allCheck}>[전체 출석]</button>
+                    ? <button className="btn" onClick={retryCheck}>[실패한 출석 다시시도]</button>
+                    : <button className="btn btn-primary" onClick={allCheck}>[전체 출석]</button>
                 }
             </div>
         </div>

@@ -3,17 +3,20 @@
     {
       "id": 1,
       "name": "철수",
-      "checked": false
+      "checked": false,
+      "checkedAt": null
     },
     {
       "id": 2,
       "name": "영희",
-      "checked": false
+      "checked": false,
+      "checkedAt": null
     },
     {
       "id": 3,
       "name": "민수",
-      "checked": false
+      "checked": false,
+      "checkedAt": null
     },
     {
       "name": "훈이",
