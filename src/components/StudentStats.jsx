@@ -16,7 +16,7 @@ function StudentStats({ students }) {
     }, [students])
 
     return (
-        <div>
+        <div className="space-y-1">
             <p>전체인원: {stats.total}명</p>
             <p>출석완료: {stats.completed}명</p>
             <p>미출석: {stats.unCompleted}명</p>

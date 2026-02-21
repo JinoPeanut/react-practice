@@ -233,12 +233,12 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
 
     return (
         <div>
-            <div>
+            <div className="m-2">
                 <button className="btn" onClick={() => setFilter("All")}>[전체]</button>
                 <button className="btn" onClick={() => setFilter("Done")}>[출석]</button>
                 <button className="btn" onClick={() => setFilter("Todo")}>[미출석]</button>
             </div>
-            <ul>
+            <ul className="space-y-2">
                 {filterStudent.map(student => {
                     const time = student.checked && student.checkedAt
                         ? new Date(student.checkedAt).toLocaleTimeString([], {
@@ -260,28 +260,31 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                 })}
             </ul>
 
-            <div>
-                <button className="btn btn-danger" onClick={resetChecked}>[전체 출석 초기화]</button>
-            </div>
+            <div className="mt-6">
+                <div className="flex justify-between items-start">
+                    {/*왼쪽영역*/}
+                    <div className="flex flex-col gap-3">
+                        <div className="flex gap-3">
+                            <button className="btn btn-danger" onClick={resetChecked}>[전체 출석 초기화]</button>
 
-            <div>
-                <StudentStats
-                    students={students}
-                />
-            </div>
+                            {hasRetryableError
+                                ? <button className="btn" onClick={retryCheck}>[실패한 출석 다시시도]</button>
+                                : <button className="btn btn-primary" onClick={allCheck}>[전체 출석]</button>
+                            }
+                        </div>
+                        <div className="flex gap-2">
+                            <input
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                            />
+                            <button className="btn" onClick={addStudent}>[추가]</button>
+                        </div>
+                    </div>
 
-            <div>
-                <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                />
-                <button className="btn" onClick={addStudent}>[추가]</button>
-            </div>
-            <div>
-                {hasRetryableError
-                    ? <button className="btn" onClick={retryCheck}>[실패한 출석 다시시도]</button>
-                    : <button className="btn btn-primary" onClick={allCheck}>[전체 출석]</button>
-                }
+                    <StudentStats
+                        students={students}
+                    />
+                </div>
             </div>
         </div>
     )
