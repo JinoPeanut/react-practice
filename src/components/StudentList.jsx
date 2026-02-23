@@ -6,6 +6,7 @@ import { createAttendanceSummary } from "../utils/attendanceSummary"
 import { isSuccess, isFailed, isRetryable } from "../utils/attendanceStatus"
 import StudentStats from "./StudentStats";
 import "../App.css";
+import { FilterButton } from "./FilterButton";
 
 
 function StudentList({ students, setStudents, filter, setFilter, name, setName }) {
@@ -232,58 +233,75 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
 
 
     return (
-        <div>
-            <div className="m-2">
-                <button className="btn" onClick={() => setFilter("All")}>[전체]</button>
-                <button className="btn" onClick={() => setFilter("Done")}>[출석]</button>
-                <button className="btn" onClick={() => setFilter("Todo")}>[미출석]</button>
-            </div>
-            <ul className="space-y-2">
-                {filterStudent.map(student => {
-                    const time = student.checked && student.checkedAt
-                        ? new Date(student.checkedAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                        })
-                        : null;
-
-                    return (
-                        <StudentItem
-                            key={student.id}
-                            student={student}
-                            time={time}
-                            onToggle={() => handleBtn(student.id)}
-                            onDelete={() => deleteStudent(student.id)}
-                            isLoading={student.isLoading}
-                        />
-                    )
-                })}
-            </ul>
-
-            <div className="mt-6">
-                <div className="flex justify-between items-start">
-                    {/*왼쪽영역*/}
-                    <div className="flex flex-col gap-3">
-                        <div className="flex gap-3">
-                            <button className="btn btn-danger" onClick={resetChecked}>[전체 출석 초기화]</button>
-
-                            {hasRetryableError
-                                ? <button className="btn" onClick={retryCheck}>[실패한 출석 다시시도]</button>
-                                : <button className="btn btn-primary" onClick={allCheck}>[전체 출석]</button>
-                            }
-                        </div>
-                        <div className="flex gap-2">
-                            <input
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                            />
-                            <button className="btn" onClick={addStudent}>[추가]</button>
-                        </div>
-                    </div>
-
-                    <StudentStats
-                        students={students}
+        <div className="min-h-screen bg-gray-100 flex justify-center pt-10">
+            <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl p-8">
+                <div className="m-2 space-x-1">
+                    <FilterButton
+                        label="전체"
+                        value="All"
+                        currentFilter={filter}
+                        onClick={setFilter}
                     />
+                    <FilterButton
+                        label="출석"
+                        value="Done"
+                        currentFilter={filter}
+                        onClick={setFilter}
+                    />
+                    <FilterButton
+                        label="미출석"
+                        value="Todo"
+                        currentFilter={filter}
+                        onClick={setFilter}
+                    />
+                </div>
+                <ul className="space-y-2">
+                    {filterStudent.map(student => {
+                        const time = student.checked && student.checkedAt
+                            ? new Date(student.checkedAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                            })
+                            : null;
+
+                        return (
+                            <StudentItem
+                                key={student.id}
+                                student={student}
+                                time={time}
+                                onToggle={() => handleBtn(student.id)}
+                                onDelete={() => deleteStudent(student.id)}
+                                isLoading={student.isLoading}
+                            />
+                        )
+                    })}
+                </ul>
+
+                <div className="mt-6">
+                    <div className="flex justify-between items-start">
+                        {/*왼쪽영역*/}
+                        <div className="flex flex-col gap-3">
+                            <div className="flex gap-3">
+                                <button className="btn btn-danger" onClick={resetChecked}>[전체 출석 초기화]</button>
+
+                                {hasRetryableError
+                                    ? <button className="btn" onClick={retryCheck}>[실패한 출석 다시시도]</button>
+                                    : <button className="btn btn-primary" onClick={allCheck}>[전체 출석]</button>
+                                }
+                            </div>
+                            <div className="flex gap-2">
+                                <input
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                />
+                                <button className="btn" onClick={addStudent}>[추가]</button>
+                            </div>
+                        </div>
+
+                        <StudentStats
+                            students={students}
+                        />
+                    </div>
                 </div>
             </div>
         </div>
