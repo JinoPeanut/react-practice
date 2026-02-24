@@ -52,6 +52,7 @@ function StudentItem({ student, onToggle, time, onDelete }) {
                         bg-indigo-500
                         text-white
                         hover:bg-indigo-600
+                        hover:scale-105
                         active:scale-95
                         transition
                         duration-150
@@ -69,6 +70,7 @@ function StudentItem({ student, onToggle, time, onDelete }) {
                         text-sm rounded-lg
                         bg-red-500 text-white
                         hover:bg-red-600
+                        hover:scale-105
                         active:scale-95
                         transition
                     "

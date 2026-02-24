@@ -16,12 +16,15 @@ function StudentStats({ students }) {
     }, [students])
 
     return (
-        <div className="
+        <div className={`
             space-y-1
             bg-gray-50
             p-4 rounded-xl
             shadow-sm text-sm
-        ">
+            ${stats.percent >= 50
+                ? "bg-green-100"
+                : "bg-red-100"}
+        `}>
             <div className={`font-semibold ${stats.percent >= 50 ? "text-green-600" : "text-red-600"}`}>
                 <p>전체인원: {stats.total}명</p>
                 <p>출석완료: {stats.completed}명</p>

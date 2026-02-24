@@ -1,17 +1,23 @@
-import { useEffect } from "react";
 import StudentItem from "./StudentItem";
-import { studentAPI } from "../api/studentAPI";
-import { toast } from "react-toastify";
-import { createAttendanceSummary } from "../utils/attendanceSummary"
-import { isSuccess, isFailed, isRetryable } from "../utils/attendanceStatus"
 import StudentStats from "./StudentStats";
-import "../App.css";
-import { FilterButton } from "./FilterButton";
+import FilterButton from "./FilterButton"
+import ControlPanel from "./ControlPanel";
+import { useStudents } from "../hooks/useStudents";
 
+function StudentList({ filter, setFilter }) {
 
-function StudentList({ students, setStudents, filter, setFilter, name, setName }) {
-
-    const { checkMany, toggleCheck, resetCheck } = studentAPI;
+    const {
+        students,
+        name,
+        setName,
+        toggleStudent,
+        resetChecked,
+        addStudent,
+        deleteStudent,
+        allCheck,
+        retryCheck,
+        hasRetryableError,
+    } = useStudents();
 
     const sortStudent = [...students].sort((a, b) => {
         if (a.checked === b.checked) {
@@ -25,211 +31,6 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
         if (filter === "Done") return s.checked;
         if (filter === "Todo") return !s.checked;
     });
-
-    const resetChecked = async () => {
-        const result = await resetCheck(students);
-        const hasFail = result.some(r => isFailed(r));
-
-        if (hasFail) {
-            alert("초기화 실패");
-            return;
-        }
-
-        setStudents(prev => prev.map(
-            s => ({
-                ...s,
-                checked: false,
-                checkedAt: null,
-            })
-        ))
-    }
-
-    const handleBtn = async (id) => {
-        const target = students.find(s => s.id === id);
-        if (!target || target.isLoading) return;
-
-        const nextChecked = !target.checked;
-        const prevStudent = [...students];
-
-        setStudents(prev => prev.map(
-            student => student.id === id
-                ? {
-                    ...student,
-                    checked: nextChecked,
-                    checkedAt: nextChecked ? Date.now() : null,
-                    isLoading: true,
-                }
-                : student
-        ))
-
-        const checkedAt = nextChecked ? Date.now() : null;
-        const result = await toggleCheck(id, nextChecked, checkedAt);
-
-        if (isSuccess(result)) {
-            setStudents(prev => prev.map(
-                s => s.id === id
-                    ? { ...s, isLoading: false }
-                    : s
-            ))
-        } else {
-            alert("출석 처리 실패");
-            setStudents(prevStudent);
-        }
-    }
-
-    const addStudent = () => {
-        if (!name.trim()) return;
-
-        fetch("http://localhost:3001/students", {
-            method: "POST",
-            headers: {
-                "Content-type": "application/json"
-            },
-            body: JSON.stringify({
-                name,
-                checked: false,
-                checkedAt: null,
-            })
-        })
-            .then(() =>
-                fetch("http://localhost:3001/students")
-                    .then(res => res.json())
-                    .then(data => {
-                        setStudents(data);
-                        setName("");
-                    })
-            )
-    }
-
-    const deleteStudent = (id) => {
-        if (id === 1) {
-            alert("1번은 삭제할 수 없습니다");
-            return;
-        }
-        const prevStudent = [...students];
-
-        setStudents(prev => prev.filter(
-            s => s.id !== id
-        ))
-
-        fetch(`http://localhost:3001/students/${id}`, {
-            method: "DELETE",
-            headers: {
-                "Content-type": "application/json"
-            }
-        })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error("삭제 실패");
-                }
-            })
-            .catch(() => {
-                alert("삭제 실패");
-                setStudents(prevStudent);
-            })
-    }
-
-    const allCheck = async () => {
-        const targets = students.filter(s => !s.checked);
-
-        if (targets.length === 0) return;
-
-        const now = Date.now();
-
-        setStudents(prev => prev.map(
-            s => s.checked
-                ? s
-                : {
-                    ...s,
-                    isLoading: true,
-                    error: null,
-                }
-        ))
-
-        // useStudentAPI.js 호출
-        const results = await checkMany(targets);
-
-        // attendanceSummary.js 호출
-        const summary = createAttendanceSummary(results);
-
-        if (summary.failed === 0) {
-            toast.success(`${summary.success} 명 출석 성공`);
-        } else {
-            toast.warning(`재시도: ${summary.failed}명 출석 실패`);
-        }
-
-        const resultMap = new Map(results.map(r => [r.id, r]));
-
-        setStudents(prev => prev.map(
-            s => {
-                const r = resultMap.get(s.id);
-                if (!r) return s;
-
-                return {
-                    ...s,
-                    checked: isSuccess(r),
-                    checkedAt: isSuccess(r) ? now : null,
-                    isLoading: false,
-                    status: r.status,
-                    error: r.error ?? null,
-                }
-            }
-        ))
-    }
-
-    const retryCheck = async () => {
-        const targets = students.filter(s => isRetryable(s));
-
-        if (targets.length === 0) return;
-
-        const now = Date.now();
-
-        setStudents(prev => prev.map(
-            s => isRetryable(s)
-                ? { ...s, isLoading: true, error: null }
-                : s
-        ));
-
-        // useStudentAPI.js 호출
-        const results = await checkMany(targets);
-
-        // attendanceSummary.js 호출
-        const summary = createAttendanceSummary(results);
-
-        if (summary.failed === 0) {
-            toast.success(`${summary.success}명 출석 성공`);
-        } else {
-            toast.warning(`${summary.failed}명 출석 실패`);
-        }
-
-        const resultMap = new Map(results.map(r => [r.id, r]));
-
-        setStudents(prev => prev.map(
-            s => {
-                const r = resultMap.get(s.id);
-                if (!r) return s;
-
-                return {
-                    ...s,
-                    checked: isSuccess(r),
-                    checkedAt: isSuccess(r) ? now : null,
-                    isLoading: false,
-                    status: r.status,
-                    error: r.error ?? null,
-                }
-            }
-        ))
-    }
-
-    const hasRetryableError = students.some(
-        s => isRetryable(s)
-    );
-
-    useEffect(() => {
-        fetch("http://localhost:3001/students")
-            .then(res => res.json())
-            .then(data => setStudents(data));
-    }, [setStudents]);
 
 
     return (
@@ -280,23 +81,15 @@ function StudentList({ students, setStudents, filter, setFilter, name, setName }
                 <div className="mt-6">
                     <div className="flex justify-between items-start">
                         {/*왼쪽영역*/}
-                        <div className="flex flex-col gap-3">
-                            <div className="flex gap-3">
-                                <button className="btn btn-danger" onClick={resetChecked}>[전체 출석 초기화]</button>
-
-                                {hasRetryableError
-                                    ? <button className="btn" onClick={retryCheck}>[실패한 출석 다시시도]</button>
-                                    : <button className="btn btn-primary" onClick={allCheck}>[전체 출석]</button>
-                                }
-                            </div>
-                            <div className="flex gap-2">
-                                <input
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                />
-                                <button className="btn" onClick={addStudent}>[추가]</button>
-                            </div>
-                        </div>
+                        <ControlPanel
+                            name={name}
+                            setName={setName}
+                            resetValue={resetChecked}
+                            retryValue={retryCheck}
+                            allValue={allCheck}
+                            addValue={addStudent}
+                            hasRetryableError={hasRetryableError}
+                        />
 
                         <StudentStats
                             students={students}
