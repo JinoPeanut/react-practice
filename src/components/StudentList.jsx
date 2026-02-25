@@ -4,7 +4,7 @@ import FilterButton from "./FilterButton"
 import ControlPanel from "./ControlPanel";
 import { useStudents } from "../hooks/useStudents";
 
-function StudentList({ filter, setFilter }) {
+function StudentList() {
 
     const {
         students,
@@ -17,21 +17,10 @@ function StudentList({ filter, setFilter }) {
         allCheck,
         retryCheck,
         hasRetryableError,
+        filterStudent,
+        filter,
+        setFilter,
     } = useStudents();
-
-    const sortStudent = [...students].sort((a, b) => {
-        if (a.checked === b.checked) {
-            return (a.checkedAt ?? 0) - (b.checkedAt ?? 0);
-        }
-        return b.checked - a.checked;
-    })
-
-    const filterStudent = sortStudent.filter(s => {
-        if (filter === "All") return true;
-        if (filter === "Done") return s.checked;
-        if (filter === "Todo") return !s.checked;
-    });
-
 
     return (
         <div className="min-h-screen bg-gray-100 flex justify-center pt-10">

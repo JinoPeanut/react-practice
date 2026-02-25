@@ -9,8 +9,25 @@ import { BASE_URL } from "../api/base_url";
 export function useStudents() {
     const [students, setStudents] = useState([]);
     const [name, setName] = useState("");
+    const [filter, setFilter] = useState("All");
+    const [isProcessing, setProcessing] = useState(false);
 
     /* ---------------- 상태 계산 ---------------- */
+
+    const filterStudent = useMemo(() => {
+        const sorted = [...students].sort((a, b) => {
+            if (a.checked === b.checked) {
+                return (a.checkedAt ?? 0) - (b.checkedAt ?? 0);
+            }
+            return b.checked - a.checked;
+        });
+
+        return sorted.filter(s => {
+            if (filter === "All") return true;
+            if (filter === "Done") return s.checked;
+            if (filter === "Todo") return !s.checked;
+        })
+    }, [students, filter]);
 
     const hasRetryableError = useMemo(
         () => students.some(s => isRetryable(s)),
@@ -26,15 +43,26 @@ export function useStudents() {
     };
 
     const resetChecked = async () => {
-        const result = await studentAPI.resetCheck(students);
-        if (result.some(isFailed)) {
-            toast.error("초기화 실패");
-            return;
-        }
+        if (isProcessing) return;
+        setProcessing(true);
 
-        setStudents(prev =>
-            prev.map(s => ({ ...s, checked: false, checkedAt: null }))
-        );
+        try {
+            const result = await studentAPI.resetCheck(students);
+
+            if (result.some(isFailed)) {
+                toast.error("초기화 실패");
+                return;
+            }
+
+            setStudents(prev =>
+                prev.map(s => ({ ...s, checked: false, checkedAt: null }))
+            );
+
+        } catch (error) {
+            toast.error("서버 오류 발생");
+        } finally {
+            setProcessing(false);
+        }
     };
 
     const toggleStudent = async (id) => {
@@ -106,8 +134,12 @@ export function useStudents() {
     };
 
     const allCheck = async () => {
+        if (isProcessing) return;
+
         const targets = students.filter(s => !s.checked);
         if (!targets.length) return;
+
+        setProcessing(true);
 
         const now = Date.now();
 
@@ -115,31 +147,42 @@ export function useStudents() {
             prev.map(s => (s.checked ? s : { ...s, isLoading: true }))
         );
 
-        const results = await studentAPI.checkMany(targets);
-        const summary = createAttendanceSummary(results);
+        try {
+            const results = await studentAPI.checkMany(targets);
+            const summary = createAttendanceSummary(results);
 
-        toast[summary.failed ? "warning" : "success"](
-            summary.failed
-                ? `재시도 필요: ${summary.failed}명`
-                : `${summary.success}명 출석 성공`
-        );
+            toast[summary.failed ? "warning" : "success"](
+                summary.failed
+                    ? `재시도 필요: ${summary.failed}명`
+                    : `${summary.success}명 출석 성공`
+            );
 
-        const map = new Map(results.map(r => [r.id, r]));
+            const map = new Map(results.map(r => [r.id, r]));
 
-        setStudents(prev =>
-            prev.map(s => {
-                const r = map.get(s.id);
-                if (!r) return s;
-                return {
-                    ...s,
-                    checked: isSuccess(r),
-                    checkedAt: isSuccess(r) ? now : null,
-                    isLoading: false,
-                    status: r.status,
-                    error: r.error ?? null,
-                };
-            })
-        );
+            setStudents(prev =>
+                prev.map(s => {
+                    const r = map.get(s.id);
+                    if (!r) return s;
+                    return {
+                        ...s,
+                        checked: isSuccess(r),
+                        checkedAt: isSuccess(r) ? now : null,
+                        isLoading: false,
+                        status: r.status,
+                        error: r.error ?? null,
+                    };
+                })
+            );
+        } catch (error) {
+            toast.error("서버 오류 발생");
+
+            setStudents(prev => prev.map(
+                s => s.isLoading ? { ...s, isLoading: false } : s
+            ))
+
+        } finally {
+            setProcessing(false);
+        }
     };
 
     const retryCheck = async () => {
@@ -188,5 +231,8 @@ export function useStudents() {
         deleteStudent,
         allCheck,
         retryCheck,
+        filterStudent,
+        filter,
+        setFilter,
     };
 }
