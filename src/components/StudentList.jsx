@@ -59,7 +59,7 @@ function StudentList() {
                                 key={student.id}
                                 student={student}
                                 time={time}
-                                onToggle={() => handleBtn(student.id)}
+                                onToggle={() => toggleStudent(student.id)}
                                 onDelete={() => deleteStudent(student.id)}
                                 isLoading={student.isLoading}
                             />

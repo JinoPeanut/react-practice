@@ -1,4 +1,4 @@
-function StudentItem({ student, onToggle, time, onDelete }) {
+function StudentItem({ student, onToggle, time, onDelete, isLoading }) {
 
     return (
         <div
@@ -44,7 +44,7 @@ function StudentItem({ student, onToggle, time, onDelete }) {
             <div className="flex gap-2">
                 <button
                     onClick={onToggle}
-                    disabled={student.isLoading}
+                    disabled={isLoading}
                     className="
                         px-4 py-2
                         text-sm
@@ -60,7 +60,7 @@ function StudentItem({ student, onToggle, time, onDelete }) {
                         disabled:opacity-50
                     "
                 >
-                    {student.isLoading ? "출석 완료" : "체크"}
+                    {student.checked ? "출석 완료" : "체크"}
                 </button>
 
                 <button

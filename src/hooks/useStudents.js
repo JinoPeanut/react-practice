@@ -10,7 +10,7 @@ export function useStudents() {
     const [students, setStudents] = useState([]);
     const [name, setName] = useState("");
     const [filter, setFilter] = useState("All");
-    const [isProcessing, setProcessing] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     /* ---------------- 상태 계산 ---------------- */
 
@@ -44,7 +44,7 @@ export function useStudents() {
 
     const resetChecked = async () => {
         if (isProcessing) return;
-        setProcessing(true);
+        setIsProcessing(true);
 
         try {
             const result = await studentAPI.resetCheck(students);
@@ -61,45 +61,69 @@ export function useStudents() {
         } catch (error) {
             toast.error("서버 오류 발생");
         } finally {
-            setProcessing(false);
+            setIsProcessing(false);
         }
     };
 
     const toggleStudent = async (id) => {
         const target = students.find(s => s.id === id);
-        if (!target || target.isLoading) return;
+        if (isProcessing || !target || target.isLoading) return;
 
         const nextChecked = !target.checked;
-        const prev = [...students];
+        const now = Date.now();
+        const prevStudent = { ...target };
 
+        applyToggle(id, nextChecked, now);
+
+        console.log("before sync");
+        await syncToggle(id, nextChecked, now, () => setStudents(prev => prev.map(
+            s => s.id === id
+                ? prevStudent
+                : s
+        )));
+
+        console.log("after sync");
+        console.log("syncToggle is:", syncToggle);
+    };
+
+    const applyToggle = (id, nextChecked, timeStamp) => {
         setStudents(prev =>
             prev.map(s =>
                 s.id === id
                     ? {
                         ...s,
                         checked: nextChecked,
-                        checkedAt: nextChecked ? Date.now() : null,
+                        checkedAt: nextChecked ? timeStamp : null,
                         isLoading: true,
                     }
                     : s
             )
         );
+    }
 
-        const result = await studentAPI.toggleCheck(
-            id,
-            nextChecked,
-            nextChecked ? Date.now() : null
-        );
-
-        if (isSuccess(result)) {
-            setStudents(prev =>
-                prev.map(s => (s.id === id ? { ...s, isLoading: false } : s))
+    const syncToggle = async (id, nextChecked, timeStamp, rollback) => {
+        try {
+            const result = await studentAPI.toggleCheck(
+                id,
+                nextChecked,
+                nextChecked ? timeStamp : null
             );
-        } else {
+
+            if (!isSuccess(result)) {
+                rollback();
+                toast.error("출석 실패");
+            } else {
+                setStudents(prev =>
+                    prev.map(s => (s.id === id
+                        ? { ...s, isLoading: false, }
+                        : s))
+                );
+            }
+        } catch (error) {
             toast.error("출석 처리 실패");
-            setStudents(prev);
+            rollback();
         }
-    };
+    }
 
     const addStudent = async () => {
         if (!name.trim()) return;
@@ -139,7 +163,7 @@ export function useStudents() {
         const targets = students.filter(s => !s.checked);
         if (!targets.length) return;
 
-        setProcessing(true);
+        setIsProcessing(true);
 
         const now = Date.now();
 
@@ -181,13 +205,19 @@ export function useStudents() {
             ))
 
         } finally {
-            setProcessing(false);
+            setIsProcessing(false);
         }
     };
 
     const retryCheck = async () => {
+        if (isProcessing) return;
+
         const targets = students.filter(isRetryable);
         if (!targets.length) return;
+
+        const now = Date.now();
+
+        setIsProcessing(true);
 
         setStudents(prev =>
             prev.map(s =>
@@ -195,23 +225,34 @@ export function useStudents() {
             )
         );
 
-        const results = await studentAPI.checkMany(targets);
-        const map = new Map(results.map(r => [r.id, r]));
+        try {
+            const results = await studentAPI.checkMany(targets);
+            const map = new Map(results.map(r => [r.id, r]));
 
-        setStudents(prev =>
-            prev.map(s => {
-                const r = map.get(s.id);
-                if (!r) return s;
-                return {
-                    ...s,
-                    checked: isSuccess(r),
-                    checkedAt: isSuccess(r) ? Date.now() : null,
-                    isLoading: false,
-                    status: r.status,
-                    error: r.error ?? null,
-                };
-            })
-        );
+            setStudents(prev =>
+                prev.map(s => {
+                    const r = map.get(s.id);
+                    if (!r) return s;
+                    return {
+                        ...s,
+                        checked: isSuccess(r),
+                        checkedAt: isSuccess(r) ? now : null,
+                        isLoading: false,
+                        status: r.status,
+                        error: r.error ?? null,
+                    };
+                })
+            );
+        } catch (error) {
+            toast.error("서버 오류 발생");
+
+            setStudents(prev => prev.map(
+                s => s.isLoading ? { ...s, isLoading: false } : s
+            ))
+
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     /* ---------------- 초기 로딩 ---------------- */

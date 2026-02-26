@@ -50,6 +50,9 @@ async function runFetch(id, body, options = {}) {
             signal: options.signal,
         });
 
+        console.log("res.ok: ", res.ok);
+        console.log("res.status: ", res.status);
+
         if (!res.ok) {
             result = normalizeAttendanceResult({
                 ok: false,
@@ -94,7 +97,7 @@ const toggleCheck = async (id, nextChecked, checkedAt, options = {}) => {
         runFetch(id, {
             checked: nextChecked,
             checkedAt,
-        }, options)
+        }, options), 2
     )
 }
 
