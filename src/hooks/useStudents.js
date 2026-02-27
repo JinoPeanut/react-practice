@@ -76,9 +76,9 @@ export function useStudents() {
         applyToggle(id, nextChecked, now);
 
         console.log("before sync");
-        await syncToggle(id, nextChecked, now, () => setStudents(prev => prev.map(
+        await syncToggle(id, nextChecked, now, (status) => setStudents(prev => prev.map(
             s => s.id === id
-                ? prevStudent
+                ? { ...prevStudent, status, isLoading: false, }
                 : s
         )));
 
@@ -110,18 +110,22 @@ export function useStudents() {
             );
 
             if (!isSuccess(result)) {
-                rollback();
+                rollback(result.status);
                 toast.error("출석 실패");
             } else {
                 setStudents(prev =>
                     prev.map(s => (s.id === id
-                        ? { ...s, isLoading: false, }
+                        ? {
+                            ...s,
+                            status: result.status,
+                            isLoading: false,
+                        }
                         : s))
                 );
             }
         } catch (error) {
             toast.error("출석 처리 실패");
-            rollback();
+            rollback("Retryable");
         }
     }
 

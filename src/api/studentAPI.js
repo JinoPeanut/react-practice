@@ -30,6 +30,13 @@ async function runStudentPatch(targets, bodyBuilder) {
 async function runFetch(id, body, options = {}) {
     const cacheKey = `${id}_${body.checkedAt ?? "reset"}`;
 
+    if (id === 1) {
+        return normalizeAttendanceResult({
+            ok: false,
+            error: "TOKEN_EXPIRED"
+        });
+    }
+
     if (attendanceCache.has(cacheKey)) {
         const cached = attendanceCache.get(cacheKey);
 

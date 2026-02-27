@@ -1,4 +1,4 @@
-function StudentItem({ student, onToggle, time, onDelete, isLoading }) {
+function StudentItem({ student, onToggle, time, onDelete, isLoading, retryOne, status }) {
 
     return (
         <div
@@ -42,6 +42,12 @@ function StudentItem({ student, onToggle, time, onDelete, isLoading }) {
             </div>
 
             <div className="flex gap-2">
+                {status === "Retryable" &&
+                    (<button onClick={retryOne} disabled={isLoading}>
+                        재시도
+                    </button>)
+                }
+
                 <button
                     onClick={onToggle}
                     disabled={isLoading}
@@ -60,7 +66,7 @@ function StudentItem({ student, onToggle, time, onDelete, isLoading }) {
                         disabled:opacity-50
                     "
                 >
-                    {student.checked ? "출석 완료" : "체크"}
+                    {isLoading ? "처리중..." : student.checked ? "출석완료" : "체크"}
                 </button>
 
                 <button

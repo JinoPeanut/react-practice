@@ -62,6 +62,8 @@ function StudentList() {
                                 onToggle={() => toggleStudent(student.id)}
                                 onDelete={() => deleteStudent(student.id)}
                                 isLoading={student.isLoading}
+                                retryOne={() => retryCheck(student.id)}
+                                status={student.status}
                             />
                         )
                     })}
