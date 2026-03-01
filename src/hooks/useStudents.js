@@ -1,5 +1,5 @@
 // src/hooks/useStudents.js
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { studentAPI } from "../api/studentAPI";
 import { isSuccess, isFailed, isRetryable } from "../utils/attendanceStatus";
 import { createAttendanceSummary } from "../utils/attendanceSummary";
@@ -11,6 +11,8 @@ export function useStudents() {
     const [name, setName] = useState("");
     const [filter, setFilter] = useState("All");
     const [isProcessing, setIsProcessing] = useState(false);
+
+    const undoTimers = useRef(new Map());
 
     /* ---------------- 상태 계산 ---------------- */
 
@@ -66,24 +68,23 @@ export function useStudents() {
     };
 
     const toggleStudent = async (id) => {
+        const existingTimer = undoTimers.current.get(id);
+        if (existingTimer) {
+            clearTimeout(existingTimer);
+            undoTimers.current.delete(id);
+        }
         const target = students.find(s => s.id === id);
         if (isProcessing || !target || target.isLoading) return;
 
         const nextChecked = !target.checked;
+        const prevChecked = target.checked;
         const now = Date.now();
         const prevStudent = { ...target };
 
         applyToggle(id, nextChecked, now);
 
-        console.log("before sync");
-        await syncToggle(id, nextChecked, now, (status) => setStudents(prev => prev.map(
-            s => s.id === id
-                ? { ...prevStudent, status, isLoading: false, }
-                : s
-        )));
 
-        console.log("after sync");
-        console.log("syncToggle is:", syncToggle);
+        await syncToggle(id, nextChecked, prevStudent, now);
     };
 
     const applyToggle = (id, nextChecked, timeStamp) => {
@@ -101,7 +102,7 @@ export function useStudents() {
         );
     }
 
-    const syncToggle = async (id, nextChecked, timeStamp, rollback) => {
+    const syncToggle = async (id, nextChecked, prevStudent, timeStamp) => {
         try {
             const result = await studentAPI.toggleCheck(
                 id,
@@ -109,23 +110,84 @@ export function useStudents() {
                 nextChecked ? timeStamp : null
             );
 
-            if (!isSuccess(result)) {
-                rollback(result.status);
-                toast.error("출석 실패");
-            } else {
-                setStudents(prev =>
-                    prev.map(s => (s.id === id
-                        ? {
-                            ...s,
-                            status: result.status,
-                            isLoading: false,
-                        }
-                        : s))
-                );
-            }
+            if (!isSuccess(result)) throw new Error();
+
+            setStudents(prev => prev.map(
+                s => s.id === id
+                    ? { ...s, isLoading: false, undoable: true }
+                    : s
+            ));
+
+            const timer = setTimeout(() => {
+                setStudents(prev => prev.map(
+                    s => s.id === id
+                        ? { ...s, undoable: false }
+                        : s
+                ))
+                undoTimers.current.delete(id);
+            }, 5000)
+
+            undoTimers.current.set(id, timer);
+
         } catch (error) {
+            //롤백
+            setStudents(prev => prev.map(
+                s => s.id === id
+                    ? {
+                        ...s,
+                        isLoading: false,
+                        undoable: true,
+                    }
+                    : s
+            ));
             toast.error("출석 처리 실패");
-            rollback("Retryable");
+        }
+    }
+
+    const undoStudent = async (id) => {
+        const target = students.find(s => s.id === id);
+        if (!target) return;
+
+        const timer = undoTimers.current.get(id);
+        if (timer) {
+            clearTimeout(timer);
+            undoTimers.current.delete(id);
+        }
+
+        const revertChecked = !target.checked;
+        const now = Date.now();
+
+        setStudents(prev => prev.map(
+            s => s.id === id
+                ? { ...s, isLoading: true }
+                : s
+        ));
+
+        try {
+            const result = await studentAPI.toggleCheck(
+                id, revertChecked, revertChecked ? now : null
+            );
+
+            if (!isSuccess(result)) throw new Error();
+
+            setStudents(prev => prev.map(
+                s => s.id === id
+                    ? {
+                        ...s,
+                        checked: revertChecked,
+                        checkedAt: revertChecked ? now : null,
+                        isLoading: false,
+                        undoable: false,
+                    }
+                    : s
+            ));
+        } catch (err) {
+            toast.error("되돌리기 실패");
+            setStudents(prev => prev.map(
+                s => s.id === id
+                    ? { ...s, isLoading: false }
+                    : s
+            ));
         }
     }
 
@@ -272,6 +334,7 @@ export function useStudents() {
         hasRetryableError,
         resetChecked,
         toggleStudent,
+        undoStudent,
         addStudent,
         deleteStudent,
         allCheck,

@@ -14,6 +14,7 @@ function StudentList() {
         resetChecked,
         addStudent,
         deleteStudent,
+        undoStudent,
         allCheck,
         retryCheck,
         hasRetryableError,
@@ -60,6 +61,7 @@ function StudentList() {
                                 student={student}
                                 time={time}
                                 onToggle={() => toggleStudent(student.id)}
+                                onUndo={() => undoStudent(student.id)}
                                 onDelete={() => deleteStudent(student.id)}
                                 isLoading={student.isLoading}
                                 retryOne={() => retryCheck(student.id)}
