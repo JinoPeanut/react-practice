@@ -11,8 +11,22 @@ export function useStudents() {
     const [name, setName] = useState("");
     const [filter, setFilter] = useState("All");
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [page, setPage] = useState(1);
+    const [total, setTotal] = useState(0);
 
     const undoTimers = useRef(new Map());
+
+    const totalPages = Math.max(1, Math.ceil(total / 5));
+
+    const nextPage = () => {
+        setPage(prev => Math.min(prev + 1, totalPages));
+    };
+
+    const prevPage = () => {
+        setPage(prev => Math.max(prev - 1, 1));
+    };
 
     /* ---------------- 상태 계산 ---------------- */
 
@@ -38,10 +52,24 @@ export function useStudents() {
 
     /* ---------------- 액션 함수 ---------------- */
 
-    const fetchStudents = async () => {
-        const res = await fetch(BASE_URL);
-        const data = await res.json();
-        setStudents(data);
+    const fetchStudents = async (page) => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const res = await fetch(`${BASE_URL}?_page=${page}&_limit=5`);
+
+            const totalCount = res.headers.get("X-Total-Count");
+            setTotal(Number(totalCount));
+
+            const data = await res.json();
+            setStudents(data);
+
+        } catch (err) {
+            setError("불러오기 실패");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const resetChecked = async () => {
@@ -205,7 +233,7 @@ export function useStudents() {
         });
 
         setName("");
-        fetchStudents();
+        fetchStudents(page);
     };
 
     const deleteStudent = async (id) => {
@@ -324,8 +352,8 @@ export function useStudents() {
     /* ---------------- 초기 로딩 ---------------- */
 
     useEffect(() => {
-        fetchStudents();
-    }, []);
+        fetchStudents(page);
+    }, [page]);
 
     return {
         students,
@@ -342,5 +370,8 @@ export function useStudents() {
         filterStudent,
         filter,
         setFilter,
+        totalPages,
+        nextPage,
+        prevPage,
     };
 }

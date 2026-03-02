@@ -23,6 +23,18 @@
       "checked": false,
       "checkedAt": null,
       "id": 4
+    },
+    {
+      "name": "맹구",
+      "checked": false,
+      "checkedAt": null,
+      "id": 5
+    },
+    {
+      "name": "유리",
+      "checked": false,
+      "checkedAt": null,
+      "id": 6
     }
   ]
 }

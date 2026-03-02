@@ -21,6 +21,9 @@ function StudentList() {
         filterStudent,
         filter,
         setFilter,
+        totalPages,
+        nextPage,
+        prevPage,
     } = useStudents();
 
     return (
@@ -70,6 +73,15 @@ function StudentList() {
                         )
                     })}
                 </ul>
+
+                <div>
+                    <button onClick={prevPage}>
+                        이전
+                    </button>
+                    <button onClick={nextPage}>
+                        다음
+                    </button>
+                </div>
 
                 <div className="mt-6">
                     <div className="flex justify-between items-start">
