@@ -5,28 +5,21 @@ import { isSuccess, isFailed, isRetryable } from "../utils/attendanceStatus";
 import { createAttendanceSummary } from "../utils/attendanceSummary";
 import { toast } from "react-toastify";
 import { BASE_URL } from "../api/base_url";
+import { usePagination } from "./usePagination";
 
 export function useStudents() {
+    const LIMIT = 5;
+    const [total, setTotal] = useState(0);
+    const { page, totalPages, nextPage, prevPage } = usePagination({ total, limit: LIMIT });
+
     const [students, setStudents] = useState([]);
     const [name, setName] = useState("");
     const [filter, setFilter] = useState("All");
     const [isProcessing, setIsProcessing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [page, setPage] = useState(1);
-    const [total, setTotal] = useState(0);
 
     const undoTimers = useRef(new Map());
-
-    const totalPages = Math.max(1, Math.ceil(total / 5));
-
-    const nextPage = () => {
-        setPage(prev => Math.min(prev + 1, totalPages));
-    };
-
-    const prevPage = () => {
-        setPage(prev => Math.max(prev - 1, 1));
-    };
 
     /* ---------------- 상태 계산 ---------------- */
 
@@ -57,7 +50,7 @@ export function useStudents() {
         setError(null);
 
         try {
-            const res = await fetch(`${BASE_URL}?_page=${page}&_limit=5`);
+            const res = await fetch(`${BASE_URL}?_page=${page}&_limit=${LIMIT}`);
 
             const totalCount = res.headers.get("X-Total-Count");
             setTotal(Number(totalCount));
@@ -245,6 +238,9 @@ export function useStudents() {
         try {
             const res = await fetch(`${BASE_URL}/${id}`, { method: "DELETE" });
             if (!res.ok) throw new Error();
+
+            await fetchStudents(page);
+
         } catch {
             toast.error("삭제 실패");
             setStudents(prev);
@@ -370,6 +366,7 @@ export function useStudents() {
         filterStudent,
         filter,
         setFilter,
+        page,
         totalPages,
         nextPage,
         prevPage,

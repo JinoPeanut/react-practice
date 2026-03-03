@@ -21,6 +21,7 @@ function StudentList() {
         filterStudent,
         filter,
         setFilter,
+        page,
         totalPages,
         nextPage,
         prevPage,
@@ -74,11 +75,22 @@ function StudentList() {
                     })}
                 </ul>
 
-                <div>
-                    <button onClick={prevPage}>
+                <div className="flex justify-center items-center gap-4 mt-4">
+                    <button
+                        onClick={prevPage}
+                        disabled={page === 1}
+                        className="px-3 py-1 border rounded disabled:opacity-40"
+                    >
                         이전
                     </button>
-                    <button onClick={nextPage}>
+                    <span className="text-sm font-medium">
+                        {page} / {totalPages}
+                    </span>
+                    <button
+                        onClick={nextPage}
+                        disabled={page === totalPages}
+                        className="px-3 py-1 border rounded disabled:opacity-40"
+                    >
                         다음
                     </button>
                 </div>
