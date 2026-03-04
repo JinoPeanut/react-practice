@@ -25,6 +25,7 @@ function StudentList() {
         totalPages,
         nextPage,
         prevPage,
+        isLoading,
     } = useStudents();
 
     return (
@@ -50,35 +51,42 @@ function StudentList() {
                         onClick={setFilter}
                     />
                 </div>
-                <ul className="space-y-2">
-                    {filterStudent.map(student => {
-                        const time = student.checked && student.checkedAt
-                            ? new Date(student.checkedAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                            })
-                            : null;
+                <div className="relative">
+                    {isLoading && (
+                        <div className="absolute inset-0 bg-white/60 flex item-center justify-center">
+                            로딩중...
+                        </div>
+                    )}
+                    <ul className="space-y-2">
+                        {filterStudent.map(student => {
+                            const time = student.checked && student.checkedAt
+                                ? new Date(student.checkedAt).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                })
+                                : null;
 
-                        return (
-                            <StudentItem
-                                key={student.id}
-                                student={student}
-                                time={time}
-                                onToggle={() => toggleStudent(student.id)}
-                                onUndo={() => undoStudent(student.id)}
-                                onDelete={() => deleteStudent(student.id)}
-                                isLoading={student.isLoading}
-                                retryOne={() => retryCheck(student.id)}
-                                status={student.status}
-                            />
-                        )
-                    })}
-                </ul>
+                            return (
+                                <StudentItem
+                                    key={student.id}
+                                    student={student}
+                                    time={time}
+                                    onToggle={() => toggleStudent(student.id)}
+                                    onUndo={() => undoStudent(student.id)}
+                                    onDelete={() => deleteStudent(student.id)}
+                                    isLoading={student.isLoading}
+                                    retryOne={() => retryCheck(student.id)}
+                                    status={student.status}
+                                />
+                            )
+                        })}
+                    </ul>
+                </div>
 
                 <div className="flex justify-center items-center gap-4 mt-4">
                     <button
                         onClick={prevPage}
-                        disabled={page === 1}
+                        disabled={page === 1 || isLoading}
                         className="px-3 py-1 border rounded disabled:opacity-40"
                     >
                         이전
@@ -88,7 +96,7 @@ function StudentList() {
                     </span>
                     <button
                         onClick={nextPage}
-                        disabled={page === totalPages}
+                        disabled={page === totalPages || isLoading}
                         className="px-3 py-1 border rounded disabled:opacity-40"
                     >
                         다음

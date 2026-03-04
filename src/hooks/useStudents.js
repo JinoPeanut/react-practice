@@ -18,6 +18,7 @@ export function useStudents() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [cache, setCache] = useState({});
 
     const undoTimers = useRef(new Map());
 
@@ -45,6 +46,7 @@ export function useStudents() {
 
     /* ---------------- 액션 함수 ---------------- */
 
+    /* 현재 페이지 패치*/
     const fetchStudents = async (page) => {
         setIsLoading(true);
         setError(null);
@@ -52,11 +54,19 @@ export function useStudents() {
         try {
             const res = await fetch(`${BASE_URL}?_page=${page}&_limit=${LIMIT}`);
 
+            if (!res.ok) throw new Error();
+
             const totalCount = res.headers.get("X-Total-Count");
             setTotal(Number(totalCount));
 
             const data = await res.json();
             setStudents(data);
+
+            //캐시에 저장
+            setCache(prev => ({
+                ...prev,
+                [page]: data,
+            }));
 
         } catch (err) {
             setError("불러오기 실패");
@@ -64,6 +74,26 @@ export function useStudents() {
             setIsLoading(false);
         }
     };
+
+    const prefetchStudents = async (page) => {
+        if (cache[page]) return;
+
+        try {
+            const res = await fetch(`${BASE_URL}?_page=${page}&_limit=${LIMIT}`);
+
+            if (!res.ok) throw new Error();
+
+            const data = await res.json();
+
+            setCache(prev => ({
+                ...prev,
+                [pave]: data,
+            }));
+
+        } catch (err) {
+            console.warn("prefetch 실패", err);
+        }
+    }
 
     const resetChecked = async () => {
         if (isProcessing) return;
@@ -348,8 +378,16 @@ export function useStudents() {
     /* ---------------- 초기 로딩 ---------------- */
 
     useEffect(() => {
-        fetchStudents(page);
-    }, [page]);
+        if (cache[page]) {
+            setStudents(cache[page]);
+        } else {
+            fetchStudents(page);
+        }
+
+        if (page > totalPages) {
+            prefetchStudents(page + 1);
+        }
+    }, [page, totalPages]);
 
     return {
         students,
@@ -370,5 +408,6 @@ export function useStudents() {
         totalPages,
         nextPage,
         prevPage,
+        isLoading,
     };
 }
