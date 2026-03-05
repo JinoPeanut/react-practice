@@ -10,7 +10,7 @@ import { usePagination } from "./usePagination";
 export function useStudents() {
     const LIMIT = 5;
     const [total, setTotal] = useState(0);
-    const { page, totalPages, nextPage, prevPage } = usePagination({ total, limit: LIMIT });
+    const { page, setPage, totalPages, nextPage, prevPage } = usePagination({ total, limit: LIMIT });
 
     const [students, setStudents] = useState([]);
     const [name, setName] = useState("");
@@ -19,6 +19,7 @@ export function useStudents() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [cache, setCache] = useState({});
+    const [search, setSearch] = useState("");
 
     const undoTimers = useRef(new Map());
 
@@ -47,26 +48,35 @@ export function useStudents() {
     /* ---------------- 액션 함수 ---------------- */
 
     /* 현재 페이지 패치*/
-    const fetchStudents = async (page) => {
+    const fetchStudents = async (page, searchQuery = "") => {
         setIsLoading(true);
         setError(null);
 
         try {
-            const res = await fetch(`${BASE_URL}?_page=${page}&_limit=${LIMIT}`);
+            const searchParam = searchQuery
+                ? `&name_like=${encodeURIComponent(searchQuery)}`
+                : "";
+
+            const res = await fetch(`${BASE_URL}?_page=${page}&_limit=${LIMIT}${searchParam}`);
 
             if (!res.ok) throw new Error();
 
-            const totalCount = res.headers.get("X-Total-Count");
-            setTotal(Number(totalCount));
+            const totalCount = Number(res.headers.get("X-Total-Count"));
+            setTotal(totalCount);
+
+            const newTotalPages = Math.ceil(totalCount / LIMIT);
 
             const data = await res.json();
             setStudents(data);
 
+            const cacheKey = `${page}_${searchQuery}`;
             //캐시에 저장
             setCache(prev => ({
                 ...prev,
-                [page]: data,
+                [cacheKey]: data,
             }));
+
+            return newTotalPages;
 
         } catch (err) {
             setError("불러오기 실패");
@@ -76,10 +86,15 @@ export function useStudents() {
     };
 
     const prefetchStudents = async (page) => {
-        if (cache[page]) return;
+        const cacheKey = `${page}_${searchQuery}`;
+        if (cache[cacheKey]) return;
 
         try {
-            const res = await fetch(`${BASE_URL}?_page=${page}&_limit=${LIMIT}`);
+            const searchParam = searchQuery
+                ? `&name_like=${encodeURIComponent(searchQuery)}`
+                : "";
+
+            const res = await fetch(`${BASE_URL}?_page=${page}&_limit=${LIMIT}${searchParam}`);
 
             if (!res.ok) throw new Error();
 
@@ -87,7 +102,7 @@ export function useStudents() {
 
             setCache(prev => ({
                 ...prev,
-                [pave]: data,
+                [cacheKey]: data,
             }));
 
         } catch (err) {
@@ -256,20 +271,25 @@ export function useStudents() {
         });
 
         setName("");
-        fetchStudents(page);
+        setCache({});
+        fetchStudents(page, search);
     };
 
     const deleteStudent = async (id) => {
         if (id === 1) return toast.warn("1번은 삭제 불가");
 
-        const prev = [...students];
+        const prev = students;
         setStudents(prev => prev.filter(s => s.id !== id));
 
         try {
             const res = await fetch(`${BASE_URL}/${id}`, { method: "DELETE" });
             if (!res.ok) throw new Error();
 
-            await fetchStudents(page);
+            const newTotalPages = await fetchStudents(page, search);
+
+            if (page > newTotalPages) {
+                setPage(prev => Math.max(prev - 1, 1));
+            }
 
         } catch {
             toast.error("삭제 실패");
@@ -377,15 +397,23 @@ export function useStudents() {
 
     /* ---------------- 초기 로딩 ---------------- */
 
+    /* 검색어 변경시 - 1페이지로 초기화 + 캐시비우기 + 재검색 */
     useEffect(() => {
-        if (cache[page]) {
-            setStudents(cache[page]);
+        setPage(1);
+        setCache({});
+        fetchStudents(1, search);
+    }, [search])
+
+    useEffect(() => {
+        const cacheKey = `${page}_${search}`;
+        if (cache[cacheKey]) {
+            setStudents(cache[cacheKey]);
         } else {
-            fetchStudents(page);
+            fetchStudents(page, search);
         }
 
-        if (page > totalPages) {
-            prefetchStudents(page + 1);
+        if (page < totalPages && !search) {
+            prefetchStudents(page + 1, search);
         }
     }, [page, totalPages]);
 
@@ -409,5 +437,7 @@ export function useStudents() {
         nextPage,
         prevPage,
         isLoading,
+        search,
+        setSearch,
     };
 }

@@ -26,30 +26,48 @@ function StudentList() {
         nextPage,
         prevPage,
         isLoading,
+        search,
+        setSearch,
     } = useStudents();
 
     return (
         <div className="min-h-screen bg-gray-100 flex justify-center pt-10">
             <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl p-8">
-                <div className="m-2 space-x-1">
-                    <FilterButton
-                        label="전체"
-                        value="All"
-                        currentFilter={filter}
-                        onClick={setFilter}
-                    />
-                    <FilterButton
-                        label="출석"
-                        value="Done"
-                        currentFilter={filter}
-                        onClick={setFilter}
-                    />
-                    <FilterButton
-                        label="미출석"
-                        value="Todo"
-                        currentFilter={filter}
-                        onClick={setFilter}
-                    />
+                <div className="m-2 space-x-1 flex justify-between">
+                    <div>
+                        <FilterButton
+                            label="전체"
+                            value="All"
+                            currentFilter={filter}
+                            onClick={setFilter}
+                        />
+                        <FilterButton
+                            label="출석"
+                            value="Done"
+                            currentFilter={filter}
+                            onClick={setFilter}
+                        />
+                        <FilterButton
+                            label="미출석"
+                            value="Todo"
+                            currentFilter={filter}
+                            onClick={setFilter}
+                        />
+                    </div>
+                    <div>
+                        <input
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            placeholder="학생 이름 검색"
+                            className="border rounded px-2 py-2 text-sm"
+                        />
+                        <button
+                            onClick={() => setSearch("")}
+                            className="ml-1 px-3 py-1 border rounded text-sm"
+                        >
+                            검색
+                        </button>
+                    </div>
                 </div>
                 <div className="relative">
                     {isLoading && (

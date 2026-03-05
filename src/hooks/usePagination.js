@@ -20,6 +20,7 @@ export function usePagination({ total, limit }) {
 
     return {
         page,
+        setPage,
         totalPages,
         nextPage,
         prevPage,
