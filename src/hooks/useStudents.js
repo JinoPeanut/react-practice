@@ -200,7 +200,7 @@ export function useStudents() {
 
         try {
             const result = await studentAPI.toggleCheck(
-                id, revertChecked, revertChecked ? now : null
+                id, revertChecked, revertChecked ? now : null, target
             );
 
             if (!isSuccess(result)) throw new Error();
@@ -220,7 +220,7 @@ export function useStudents() {
             toast.error("되돌리기 실패");
             setStudents(prev => prev.map(
                 s => s.id === id
-                    ? { ...s, isLoading: false }
+                    ? { ...s, isLoading: false, undoable: false }
                     : s
             ));
         }
