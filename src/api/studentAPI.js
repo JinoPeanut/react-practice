@@ -5,6 +5,7 @@ import { attendanceCache } from "./attendanceCache";
 import { shouldCache } from "../utils/attendanceCachePolicy";
 import { CACHE_TTL } from "../utils/cacheTtl";
 import { retryFetch } from "./retryFetch";
+import { BASE_URL } from "./base_url";
 
 
 
@@ -43,8 +44,8 @@ async function runFetch(id, body, options = {}) {
     let result;
 
     try {
-        const res = await fetch(`http://localhost:3001/students/${id}`, {
-            method: "PATCH",
+        const res = await fetch(`${BASE_URL}/${id}`, {
+            method: "PUT",
             headers: { "Content-type": "application/json" },
             body: JSON.stringify(body),
             signal: options.signal,
@@ -86,15 +87,19 @@ const checkMany = async (students) => {
         maxRetry: 2,
         requestFn: (student) =>
             runFetch(student.id, {
+                id: student.id,
+                name: student.name,
                 checked: true,
                 checkedAt: now,
             })
     })
 }
 
-const toggleCheck = async (id, nextChecked, checkedAt, options = {}) => {
+const toggleCheck = async (id, nextChecked, checkedAt, student, options = {}) => {
     return retryFetch(() =>
         runFetch(id, {
+            id,
+            name: student.name,
             checked: nextChecked,
             checkedAt,
         }, options), 2
@@ -102,7 +107,9 @@ const toggleCheck = async (id, nextChecked, checkedAt, options = {}) => {
 }
 
 const resetCheck = async (targets) => {
-    return runStudentPatch(targets, () => ({
+    return runStudentPatch(targets, (student) => ({
+        id: student.id,
+        name: student.name,
         checked: false,
         checkedAt: null,
     }))
@@ -110,7 +117,7 @@ const resetCheck = async (targets) => {
 
 const getStudents = async () => {
     try {
-        const res = await fetch("http://localhost:3001/students");
+        const res = await fetch(`${BASE_URL}`);
 
         if (!res.ok) {
             throw new Error("학생 목록 조회 실패");

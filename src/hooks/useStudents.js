@@ -54,19 +54,19 @@ export function useStudents() {
 
         try {
             const searchParam = searchQuery
-                ? `&name_like=${encodeURIComponent(searchQuery)}`
+                ? `&name=${encodeURIComponent(searchQuery)}`
                 : "";
 
-            const res = await fetch(`${BASE_URL}?_page=${page}&_limit=${LIMIT}${searchParam}`);
+            const res = await fetch(`${BASE_URL}?page=${page}&limit=${LIMIT}${searchParam}`);
 
             if (!res.ok) throw new Error();
 
-            const totalCount = Number(res.headers.get("X-Total-Count"));
+            const data = await res.json();
+            const totalCount = data.length;
             setTotal(totalCount);
 
             const newTotalPages = Math.ceil(totalCount / LIMIT);
 
-            const data = await res.json();
             setStudents(data);
 
             const cacheKey = `${page}_${searchQuery}`;
@@ -128,6 +128,7 @@ export function useStudents() {
 
         } catch (error) {
             toast.error("서버 오류 발생");
+            console.log("에러내용: ", error);
         } finally {
             setIsProcessing(false);
         }
@@ -148,7 +149,7 @@ export function useStudents() {
         ));
 
         try {
-            const result = await studentAPI.toggleCheck(id, nextChecked, nextChecked ? now : null);
+            const result = await studentAPI.toggleCheck(id, nextChecked, nextChecked ? now : null, target);
             if (!isSuccess(result)) throw new Error();
 
             // 성공 시 isLoading만 끄고 undoable 켜기
