@@ -57,18 +57,19 @@ export function useStudents() {
                 ? `&name=${encodeURIComponent(searchQuery)}`
                 : "";
 
-            const res = await fetch(`${BASE_URL}?page=${page}&limit=${LIMIT}${searchParam}`);
-
-            if (!res.ok) throw new Error();
-
-            const data = await res.json();
-            const totalCount = data.length;
+            /* 전체 개수 먼저 가져오기 */
+            const countRes = await fetch(`${BASE_URL}?${searchParam}`);
+            const allData = await countRes.json();
+            const totalCount = allData.length;
             setTotal(totalCount);
 
-            const newTotalPages = Math.ceil(totalCount / LIMIT);
-
+            /* 현재 페이지 데이터 가져오기 */
+            const res = await fetch(`${BASE_URL}?page=${page}&limit=${LIMIT}${searchParam}`);
+            if (!res.ok) throw new Error();
+            const data = await res.json();
             setStudents(data);
 
+            const newTotalPages = Math.ceil(totalCount / LIMIT);
             const cacheKey = `${page}_${searchQuery}`;
             //캐시에 저장
             setCache(prev => ({
