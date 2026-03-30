@@ -134,81 +134,48 @@ export function useStudents() {
     };
 
     const toggleStudent = async (id) => {
-        const existingTimer = undoTimers.current.get(id);
-        if (existingTimer) {
-            clearTimeout(existingTimer);
-            undoTimers.current.delete(id);
-        }
         const target = students.find(s => s.id === id);
         if (isProcessing || !target || target.isLoading) return;
 
         const nextChecked = !target.checked;
-        const prevChecked = target.checked;
         const now = Date.now();
-        const prevStudent = { ...target };
 
-        applyToggle(id, nextChecked, now);
+        // 1번만 호출
+        setStudents(prev => prev.map(s =>
+            s.id === id
+                ? { ...s, checked: nextChecked, checkedAt: nextChecked ? now : null, isLoading: true }
+                : s
+        ));
 
-
-        await syncToggle(id, nextChecked, prevStudent, now);
-    };
-
-    const applyToggle = (id, nextChecked, timeStamp) => {
-        setStudents(prev =>
-            prev.map(s =>
-                s.id === id
-                    ? {
-                        ...s,
-                        checked: nextChecked,
-                        checkedAt: nextChecked ? timeStamp : null,
-                        isLoading: true,
-                    }
-                    : s
-            )
-        );
-    }
-
-    const syncToggle = async (id, nextChecked, prevStudent, timeStamp) => {
         try {
-            const result = await studentAPI.toggleCheck(
-                id,
-                nextChecked,
-                nextChecked ? timeStamp : null
-            );
-
+            const result = await studentAPI.toggleCheck(id, nextChecked, nextChecked ? now : null);
             if (!isSuccess(result)) throw new Error();
 
-            setStudents(prev => prev.map(
-                s => s.id === id
-                    ? { ...s, isLoading: false, undoable: true }
-                    : s
+            // 성공 시 isLoading만 끄고 undoable 켜기
+            setStudents(prev => prev.map(s =>
+                s.id === id ? { ...s, isLoading: false, undoable: true } : s
             ));
 
+            // 5초 후 undoable 끄기
             const timer = setTimeout(() => {
-                setStudents(prev => prev.map(
-                    s => s.id === id
-                        ? { ...s, undoable: false }
-                        : s
-                ))
+                setStudents(prev => prev.map(s =>
+                    s.id === id ? { ...s, undoable: false } : s
+                ));
                 undoTimers.current.delete(id);
-            }, 5000)
+            }, 5000);
 
             undoTimers.current.set(id, timer);
 
-        } catch (error) {
-            //롤백
-            setStudents(prev => prev.map(
-                s => s.id === id
-                    ? {
-                        ...s,
-                        isLoading: false,
-                        undoable: true,
-                    }
+        } catch {
+            // 실패 시 롤백
+            setStudents(prev => prev.map(s =>
+                s.id === id
+                    ? { ...s, checked: target.checked, checkedAt: target.checkedAt, isLoading: false, undoable: false, status: "Retryable" }
                     : s
             ));
             toast.error("출석 처리 실패");
         }
-    }
+    };
 
     const undoStudent = async (id) => {
         const target = students.find(s => s.id === id);
@@ -276,8 +243,6 @@ export function useStudents() {
     };
 
     const deleteStudent = async (id) => {
-        if (id === 1) return toast.warn("1번은 삭제 불가");
-
         const prev = students;
         setStudents(prev => prev.filter(s => s.id !== id));
 

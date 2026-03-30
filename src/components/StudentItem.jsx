@@ -68,9 +68,13 @@ function StudentItem({ student, onToggle, time, onDelete, isLoading, retryOne, s
                 >
                     {isLoading ? "처리중..." : student.checked ? "출석완료" : "체크"}
                 </button>
-                {student.undoable && (<button onClick={onUndo}>
-                    되돌리기(5초)
-                </button>)}
+
+                {
+                    student.undoable &&
+                    (<button onClick={onUndo}>
+                        되돌리기(5초)
+                    </button>)
+                }
 
                 <button
                     onClick={onDelete}

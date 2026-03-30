@@ -3,25 +3,25 @@
     {
       "id": 1,
       "name": "철수",
-      "checked": false,
-      "checkedAt": null
+      "checked": true,
+      "checkedAt": 1774863117242
     },
     {
       "id": 2,
       "name": "영희",
-      "checked": false,
-      "checkedAt": null
+      "checked": true,
+      "checkedAt": 1774863118690
     },
     {
       "id": 3,
       "name": "민수",
-      "checked": false,
-      "checkedAt": null
+      "checked": true,
+      "checkedAt": 1774863119710
     },
     {
       "name": "훈이",
-      "checked": false,
-      "checkedAt": null,
+      "checked": true,
+      "checkedAt": 1774863121070,
       "id": 4
     },
     {
