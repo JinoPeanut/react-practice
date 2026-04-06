@@ -27,13 +27,18 @@ export function useStudents() {
 
     const filterStudent = useMemo(() => {
         const sorted = [...students].sort((a, b) => {
+            // a학생 b학생 출석이 똑같으면 출석시간에 따라서 정렬
             if (a.checked === b.checked) {
                 return (a.checkedAt ?? 0) - (b.checkedAt ?? 0);
             }
+            // 그 외에는 출석한사람이 앞에 (b-a 는 큰값정렬)
+            // b가 true면 1 a 가 false면 0 이라서 1-0 = 1
+            // 큰값정렬이라 더 높은 true(1) 이 앞으로 정렬
             return b.checked - a.checked;
         });
 
         return sorted.filter(s => {
+            // true는 전체학생을 뜻함
             if (filter === "All") return true;
             if (filter === "Done") return s.checked;
             if (filter === "Todo") return !s.checked;
@@ -86,21 +91,30 @@ export function useStudents() {
         }
     };
 
-    const prefetchStudents = async (page) => {
+    // 페이지 또는 검색한 페이지를 기억해서 로딩없이 보여주는 역할
+    const prefetchStudents = async (page, searchQuery = "") => {
         const cacheKey = `${page}_${searchQuery}`;
+
+        // 캐시 키 있으면 바로 리턴 (불필요한 API 호출 방지)
         if (cache[cacheKey]) return;
 
         try {
+            // 검색어있으면 쿼리 붙이고 없으면 안붙임
+            // encodeURIComponent 는 한글/공백 안전하게 URL로 변환
             const searchParam = searchQuery
                 ? `&name_like=${encodeURIComponent(searchQuery)}`
                 : "";
 
+            // fetch 요청
             const res = await fetch(`${BASE_URL}?_page=${page}&_limit=${LIMIT}${searchParam}`);
 
+            // 서버응답 실패시 바로 catch 로 이동
             if (!res.ok) throw new Error();
 
+            // 서버응답(JSON) 을 JS 객체로 변환
             const data = await res.json();
 
+            // 캐시에 저장
             setCache(prev => ({
                 ...prev,
                 [cacheKey]: data,
@@ -118,11 +132,14 @@ export function useStudents() {
         try {
             const result = await studentAPI.resetCheck(students);
 
+            // isFailed 는 내부적으로 result.some((item) => isFailed(item)) 이렇게 됨
+            // isFailed() 이렇게 하면 함수를 넘기는것이 아닌 바로 실행이 되어버림
             if (result.some(isFailed)) {
                 toast.error("초기화 실패");
                 return;
             }
 
+            // 화면 UI 변경
             setStudents(prev =>
                 prev.map(s => ({ ...s, checked: false, checkedAt: null }))
             );
@@ -180,15 +197,19 @@ export function useStudents() {
     };
 
     const undoStudent = async (id) => {
+        // 학생찾기
         const target = students.find(s => s.id === id);
         if (!target) return;
 
+        // 이미 타이머 작동중이면 취소시킴
         const timer = undoTimers.current.get(id);
         if (timer) {
             clearTimeout(timer);
             undoTimers.current.delete(id);
         }
 
+        // 되돌리기 위한 변수
+        // 출석체크 -> 되돌리기 -> !출석체크
         const revertChecked = !target.checked;
         const now = Date.now();
 
@@ -199,12 +220,17 @@ export function useStudents() {
         ));
 
         try {
+            // 출석 상태 변경 요청
+            // undo는 되돌리려는 함수니까 체크상태 변수는 항상
+            // !target.checked 가 맞다 (undo 는 출석체크 또는 취소 이후에만 나오기때문)
             const result = await studentAPI.toggleCheck(
                 id, revertChecked, revertChecked ? now : null, target
             );
 
+            // 서버통신엔 성공했지만 결과가 실패라면 catch로 보냄
             if (!isSuccess(result)) throw new Error();
 
+            // 성공시 상태 변경
             setStudents(prev => prev.map(
                 s => s.id === id
                     ? {
@@ -218,6 +244,8 @@ export function useStudents() {
             ));
         } catch (err) {
             toast.error("되돌리기 실패");
+
+            // 단일 대상으로 하는 함수에는 굳이 서버상태 필요없음
             setStudents(prev => prev.map(
                 s => s.id === id
                     ? { ...s, isLoading: false, undoable: false }
@@ -267,6 +295,7 @@ export function useStudents() {
     const allCheck = async () => {
         if (isProcessing) return;
 
+        // 출석체크 안된 학생만 필터링
         const targets = students.filter(s => !s.checked);
         if (!targets.length) return;
 
@@ -279,6 +308,7 @@ export function useStudents() {
         );
 
         try {
+            // 해당 변수는 checkMany 의 결과값을 저장한 변수
             const results = await studentAPI.checkMany(targets);
             const summary = createAttendanceSummary(results);
 
@@ -288,10 +318,14 @@ export function useStudents() {
                     : `${summary.success}명 출석 성공`
             );
 
+            // id 를 기준으로 찾기위한것
+            // 예시) { id: 1, ok: true } -> [1, { id: 1, ok: true }]
+            // 즉 대괄호 안에 key는 1 로 value 는 {} 안에 값들
             const map = new Map(results.map(r => [r.id, r]));
 
             setStudents(prev =>
                 prev.map(s => {
+                    //변수 r을 쓴 이유는 반환할 데이터에 status 랑 error 를 추가하기 위해
                     const r = map.get(s.id);
                     if (!r) return s;
                     return {
@@ -299,6 +333,9 @@ export function useStudents() {
                         checked: isSuccess(r),
                         checkedAt: isSuccess(r) ? now : null,
                         isLoading: false,
+                        // 성공시에 status 랑 error 는 필요없지만
+                        // 실패시에는 필요함으로 결국은 전체적인 데이터의
+                        // 일관성을 맞추기위해 사용
                         status: r.status,
                         error: r.error ?? null,
                     };
@@ -319,13 +356,17 @@ export function useStudents() {
     const retryCheck = async () => {
         if (isProcessing) return;
 
+        // 재시도 상태인 학생만 필터링해서 저장
         const targets = students.filter(isRetryable);
+
+        // 재시도 학생이 없으면 리턴
         if (!targets.length) return;
 
         const now = Date.now();
 
         setIsProcessing(true);
 
+        // 재시도 시작 표시
         setStudents(prev =>
             prev.map(s =>
                 isRetryable(s) ? { ...s, isLoading: true, error: null } : s
@@ -333,9 +374,12 @@ export function useStudents() {
         );
 
         try {
+            // 서버 결과 요청
             const results = await studentAPI.checkMany(targets);
+            // 값을 빠르게찾기위한 맵 생성
             const map = new Map(results.map(r => [r.id, r]));
 
+            // 화면 UI 반영
             setStudents(prev =>
                 prev.map(s => {
                     const r = map.get(s.id);
@@ -345,6 +389,7 @@ export function useStudents() {
                         checked: isSuccess(r),
                         checkedAt: isSuccess(r) ? now : null,
                         isLoading: false,
+                        // r.status 는 서버상태 r 을 기반으로 결과 저장
                         status: r.status,
                         error: r.error ?? null,
                     };
@@ -374,11 +419,14 @@ export function useStudents() {
     useEffect(() => {
         const cacheKey = `${page}_${search}`;
         if (cache[cacheKey]) {
+            // 캐시있으면 UI 바로 업데이트
             setStudents(cache[cacheKey]);
         } else {
+            // 캐시없으면 서버에서 데이터가져오고 캐시저장
             fetchStudents(page, search);
         }
 
+        // 다음페이지 미리 가져오기
         if (page < totalPages && !search) {
             prefetchStudents(page + 1, search);
         }

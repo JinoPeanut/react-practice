@@ -13,6 +13,7 @@ async function runStudentPatch(targets, bodyBuilder) {
     return Promise.all(
         targets.map(async (student) => {
 
+            // 받아온 값을 body로 만들어서 runFetch 에 넘김
             const body = bodyBuilder(student);
             const res = await runFetch(student.id, body);
 
@@ -31,13 +32,18 @@ async function runStudentPatch(targets, bodyBuilder) {
 async function runFetch(id, body, options = {}) {
     const cacheKey = `${id}_${body.checkedAt ?? "reset"}`;
 
+    // 캐시가 있는지 확인
     if (attendanceCache.has(cacheKey)) {
+        // 저장된 데이터 가져옴
         const cached = attendanceCache.get(cacheKey);
 
+        // 캐시가 오래됐는지 확인 (즉 캐시 유통기한)
         const isExpired = Date.now() - cached.cachedAt > CACHE_TTL;
 
+        // 만료안됐으면 그대로 리턴
         if (!isExpired) return cached.result;
 
+        // 만료됐으면 삭제
         attendanceCache.delete(cacheKey);
     }
 
@@ -51,24 +57,29 @@ async function runFetch(id, body, options = {}) {
             signal: options.signal,
         });
 
-        console.log("res.ok: ", res.ok);
-        console.log("res.status: ", res.status);
-
+        // 통신 오류시 조건문
         if (!res.ok) {
+            // error 타입이 NETWORK 인데 normalize 에 result.error
+            // "NETWORK" 사유가 없어서 normalize 는 작동안함
             result = normalizeAttendanceResult({
                 ok: false,
                 error: { type: API_ERROR.NETWORK }
             })
         } else {
+            // 이부분은 통신 성공시.
             result = normalizeAttendanceResult({ ok: true });
         }
     } catch {
+        // 실패시 보낼 데이터들.
         result = normalizeAttendanceResult({
             ok: false,
             error: { type: API_ERROR.UNKNOWN }
         });
     }
 
+    // shouldCache = isSuccess를 리턴
+    // 즉 통신이 성공했을때만 캐시를 저장하고 캐시저장 시간을 남겨둔다.
+    // res.ok -> status: "Success" 반환 -> true -> if문 동작
     if (shouldCache(result)) {
         attendanceCache.set(cacheKey, {
             result,
@@ -79,6 +90,8 @@ async function runFetch(id, body, options = {}) {
     return result;
 }
 
+// allCheck 로 부터 출석체크 안된 학생들을 넘겨받음
+// 또는 retryCheck 로 부터 재시도 상태인 학생을 넘겨받음
 const checkMany = async (students) => {
     const now = Date.now();
 
@@ -96,6 +109,8 @@ const checkMany = async (students) => {
 }
 
 const toggleCheck = async (id, nextChecked, checkedAt, student, options = {}) => {
+    // () => 를 쓴 이유는 retryFetch 가 2번의 runFetch 를 실행할 권한을 가지기때문
+    // () => 를 쓰지않으면 이미 결과가 실행되어버려서 retry의 의미가 사라짐.
     return retryFetch(() =>
         runFetch(id, {
             id,
@@ -107,6 +122,8 @@ const toggleCheck = async (id, nextChecked, checkedAt, student, options = {}) =>
 }
 
 const resetCheck = async (targets) => {
+    // runStudentPatch 에 targets 와 bodyBuilder(student) 를 넘김
+    // bodyBuilder 에는 resetCheck 가 원하는 동작을 포함하고 있음
     return runStudentPatch(targets, (student) => ({
         id: student.id,
         name: student.name,
@@ -115,23 +132,7 @@ const resetCheck = async (targets) => {
     }))
 }
 
-const getStudents = async () => {
-    try {
-        const res = await fetch(`${BASE_URL}`);
-
-        if (!res.ok) {
-            throw new Error("학생 목록 조회 실패");
-        }
-
-        return await res.json();
-    } catch (error) {
-        throw error;
-    }
-};
-
-
 export const studentAPI = {
-    getStudents,
     checkMany,
     toggleCheck,
     resetCheck,

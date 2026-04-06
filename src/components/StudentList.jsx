@@ -7,30 +7,14 @@ import { useStudents } from "../hooks/useStudents";
 function StudentList() {
 
     const {
-        students,
-        name,
-        setName,
-        toggleStudent,
-        resetChecked,
-        addStudent,
-        deleteStudent,
-        undoStudent,
-        allCheck,
-        retryCheck,
-        hasRetryableError,
-        filterStudent,
-        filter,
-        setFilter,
-        page,
-        totalPages,
-        nextPage,
-        prevPage,
-        isLoading,
-        search,
-        setSearch,
+        students, name, setName, toggleStudent, resetChecked, addStudent,
+        deleteStudent, undoStudent, allCheck, retryCheck, hasRetryableError,
+        filterStudent, filter, setFilter, page, totalPages, nextPage,
+        prevPage, isLoading, search, setSearch,
     } = useStudents();
 
     return (
+        // 
         <div className="min-h-screen bg-gray-100 flex justify-center pt-10">
             <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl p-8">
                 <div className="m-2 space-x-1 flex justify-between">
